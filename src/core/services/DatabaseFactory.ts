@@ -1,34 +1,19 @@
 import type { IDatabaseService } from './interfaces/IDatabaseService';
-import { DexieAdapter } from './adapters/DexieAdapter';
 import { SupabaseAdapter } from './adapters/SupabaseAdapter';
-
-type DatabaseProvider = 'dexie' | 'supabase';
 
 export class DatabaseFactory {
   private static instance: IDatabaseService | null = null;
 
   /**
    * Obtiene la instancia del servicio de base de datos
-   * 🎯 ÚNICO LUGAR DONDE SE ELIGE EL ADAPTER
+   * 🎯 Ahora usa exclusivamente Supabase
    */
-  static getDatabase(provider: DatabaseProvider = 'dexie'): IDatabaseService {
+  static getDatabase(): IDatabaseService {
     if (this.instance) {
       return this.instance;
     }
 
-    switch (provider) {
-      case 'dexie':
-        this.instance = new DexieAdapter();
-        break;
-      
-      case 'supabase':
-        this.instance = new SupabaseAdapter();
-        break;
-      
-      default:
-        throw new Error(`Unknown database provider: ${provider}`);
-    }
-
+    this.instance = new SupabaseAdapter();
     return this.instance;
   }
 
@@ -41,6 +26,4 @@ export class DatabaseFactory {
 }
 
 // Exportar instancia por defecto
-export const db = DatabaseFactory.getDatabase(
-  (import.meta.env.VITE_DB_PROVIDER as DatabaseProvider) || 'dexie'
-);
+export const db = DatabaseFactory.getDatabase();

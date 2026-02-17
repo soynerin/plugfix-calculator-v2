@@ -1,73 +1,56 @@
-# React + TypeScript + Vite
+# PlugFix Calculator v2.0 📱
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Sistema de gestión y cotización de reparaciones para servicios técnicos, construido con tecnología moderna y arquitectura limpia.
 
-Currently, two official plugins are available:
+## 🚀 Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+* **Frontend:** React + TypeScript + Vite
+* **Estilos:** Tailwind CSS + Shadcn/UI
+* **Backend/DB:** Supabase (PostgreSQL)
+* **Estado/Cache:** TanStack Query
+* **Iconos:** Lucide React
 
-## React Compiler
+## 🛠️ Configuración e Instalación
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1.  **Clonar el repositorio:**
+    ```bash
+    git clone [URL_DEL_REPO]
+    cd plugfix-calculator
+    ```
 
-## Expanding the ESLint configuration
+2.  **Instalar dependencias:**
+    ```bash
+    npm install
+    ```
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+3.  **Variables de Entorno:**
+    Crea un archivo `.env.local` en la raíz del proyecto con tus credenciales de Supabase:
+    ```env
+    VITE_SUPABASE_URL=tu_url_de_supabase
+    VITE_SUPABASE_ANON_KEY=tu_anon_key_de_supabase
+    ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+4.  **Correr el proyecto:**
+    ```bash
+    npm run dev
+    ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 🗄️ Modelo de Datos (Supabase)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+El proyecto utiliza las siguientes tablas en Supabase:
+* `brands` (Marcas)
+* `models` (Modelos con riesgo y gama)
+* `services` (Servicios y mano de obra)
+* `repairs` (Historial de reparaciones y clientes)
+* `settings` (Configuración del negocio: Precio Hora, Dólar, Margen)
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## ✨ Funcionalidades
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+* Calculadora de precios en tiempo real.
+* Gestión de Clientes y Reparaciones.
+* Cotización automática del Dólar Blue (API).
+* Modo Oscuro / Claro.
+* Diseño Responsive (Mobile First).
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
+Desarrollado con ❤️ por **soynerin**

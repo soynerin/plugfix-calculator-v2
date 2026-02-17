@@ -3,11 +3,9 @@ import { Button } from '@/shared/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { db } from '@/core/services';
 import { checkSupabaseConnection } from '@/lib/supabase';
-import { Database, Cloud, CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { Cloud, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 
 interface DiagnosticResult {
-  provider: string;
-  isSupabase: boolean;
   connectionTest?: boolean;
   brandCount?: number;
   error?: string;
@@ -15,7 +13,7 @@ interface DiagnosticResult {
 }
 
 /**
- * DatabaseDiagnostic - Componente para verificar qué base de datos se está usando
+ * DatabaseDiagnostic - Componente para verificar la conexión con Supabase
  * 
  * Uso: Agregar en App.tsx o en una pestaña de Settings/Debug
  */
@@ -27,19 +25,14 @@ export function DatabaseDiagnostic() {
     setIsLoading(true);
     
     try {
-      // 1. Obtener el provider configurado
-      const provider = import.meta.env.VITE_DB_PROVIDER || 'dexie';
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const isSupabase = provider === 'supabase';
 
       const diagnosticResult: DiagnosticResult = {
-        provider,
-        isSupabase,
         timestamp: new Date()
       };
 
-      // 2. Test de conexión a Supabase (solo si está configurado)
-      if (isSupabase && supabaseUrl) {
+      // Test de conexión a Supabase
+      if (supabaseUrl) {
         try {
           const isConnected = await checkSupabaseConnection();
           diagnosticResult.connectionTest = isConnected;
@@ -48,7 +41,7 @@ export function DatabaseDiagnostic() {
         }
       }
 
-      // 3. Obtener datos de prueba
+      // Obtener datos de prueba
       try {
         const brands = await db.getAllBrands();
         diagnosticResult.brandCount = brands.length;
@@ -59,8 +52,6 @@ export function DatabaseDiagnostic() {
       setResult(diagnosticResult);
     } catch (error) {
       setResult({
-        provider: 'unknown',
-        isSupabase: false,
         error: `Error fatal: ${error}`,
         timestamp: new Date()
       });
@@ -73,11 +64,11 @@ export function DatabaseDiagnostic() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Database className="w-5 h-5" />
-          Diagnóstico de Base de Datos
+          <Cloud className="w-5 h-5" />
+          Diagnóstico de Supabase
         </CardTitle>
         <CardDescription>
-          Verifica qué base de datos está usando actualmente la aplicación
+          Verifica la conexión con Supabase y el estado de la base de datos
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -96,65 +87,34 @@ export function DatabaseDiagnostic() {
         {/* Results */}
         {result && (
           <div className="space-y-4">
-            {/* Provider Info */}
+            {/* Connection Test */}
             <div className="p-4 rounded-lg border bg-card">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Base de Datos Configurada:</span>
+                <span className="text-sm font-medium">Prueba de Conexión:</span>
                 <div className="flex items-center gap-2">
-                  {result.isSupabase ? (
-                    <Cloud className="w-4 h-4 text-blue-500" />
+                  {result.connectionTest === true ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      <span className="text-sm text-green-600 dark:text-green-400">
+                        Conectado
+                      </span>
+                    </>
                   ) : (
-                    <Database className="w-4 h-4 text-green-500" />
+                    <>
+                      <XCircle className="w-4 h-4 text-red-500" />
+                      <span className="text-sm text-red-600 dark:text-red-400">
+                        No conectado
+                      </span>
+                    </>
                   )}
-                  <span className="font-bold">
-                    {result.provider.toUpperCase()}
-                  </span>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {result.isSupabase 
-                  ? '☁️ Usando Supabase (PostgreSQL en la nube)'
-                  : '💾 Usando Dexie (IndexedDB local)'}
-              </p>
+              {result.connectionTest && (
+                <p className="text-xs text-muted-foreground">
+                  ✅ Conexión exitosa a Supabase
+                </p>
+              )}
             </div>
-
-            {/* Connection Test (only for Supabase) */}
-            {result.isSupabase && (
-              <div className="p-4 rounded-lg border bg-card">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Prueba de Conexión:</span>
-                  <div className="flex items-center gap-2">
-                    {result.connectionTest === true ? (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 text-green-500" />
-                        <span className="text-sm text-green-600 dark:text-green-400">
-                          Conectado
-                        </span>
-                      </>
-                    ) : result.connectionTest === false ? (
-                      <>
-                        <XCircle className="w-4 h-4 text-red-500" />
-                        <span className="text-sm text-red-600 dark:text-red-400">
-                          No conectado
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                        <span className="text-sm text-yellow-600 dark:text-yellow-400">
-                          No probado
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                {result.connectionTest && (
-                  <p className="text-xs text-muted-foreground">
-                    ✅ Conexión exitosa a Supabase
-                  </p>
-                )}
-              </div>
-            )}
 
             {/* Data Test */}
             <div className="p-4 rounded-lg border bg-card">
@@ -202,15 +162,13 @@ export function DatabaseDiagnostic() {
               </div>
             )}
 
-            {/* Supabase URL (only if Supabase) */}
-            {result.isSupabase && (
-              <div className="p-4 rounded-lg border bg-card">
-                <span className="text-sm font-medium">Supabase URL:</span>
-                <p className="text-xs font-mono mt-1 text-muted-foreground break-all">
-                  {import.meta.env.VITE_SUPABASE_URL || 'No configurado'}
-                </p>
-              </div>
-            )}
+            {/* Supabase URL */}
+            <div className="p-4 rounded-lg border bg-card">
+              <span className="text-sm font-medium">Supabase URL:</span>
+              <p className="text-xs font-mono mt-1 text-muted-foreground break-all">
+                {import.meta.env.VITE_SUPABASE_URL || 'No configurado'}
+              </p>
+            </div>
 
             {/* Timestamp */}
             <div className="text-xs text-center text-muted-foreground">
@@ -223,19 +181,12 @@ export function DatabaseDiagnostic() {
             {/* Instructions */}
             <div className="p-4 rounded-lg border border-blue-500 bg-blue-50 dark:bg-blue-950">
               <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
-                💡 ¿Cómo cambiar de base de datos?
+                💡 Configuración
               </p>
-              <ol className="text-xs text-blue-800 dark:text-blue-200 space-y-1 list-decimal list-inside">
-                <li>
-                  Edita <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.env.local</code>
-                </li>
-                <li>
-                  Cambia <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">VITE_DB_PROVIDER=</code>
-                  a <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">dexie</code> o{' '}
-                  <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">supabase</code>
-                </li>
-                <li>Reinicia el servidor de desarrollo (Ctrl+C → npm run dev)</li>
-              </ol>
+              <p className="text-xs text-blue-800 dark:text-blue-200">
+                Las credenciales de Supabase se configuran en el archivo{' '}
+                <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.env.local</code>
+              </p>
             </div>
           </div>
         )}

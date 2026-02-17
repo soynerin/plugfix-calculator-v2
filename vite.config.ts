@@ -43,7 +43,7 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'query-vendor': ['@tanstack/react-query'],
           'ui-vendor': ['lucide-react'],
-          'db-vendor': ['dexie', '@supabase/supabase-js'],
+          'db-vendor': ['@supabase/supabase-js'],
         },
       },
     },
@@ -60,7 +60,6 @@ export default defineConfig({
       'react-router-dom',
       '@tanstack/react-query',
       'zustand',
-      'dexie',
     ],
   },
 

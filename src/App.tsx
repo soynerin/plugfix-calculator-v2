@@ -197,7 +197,7 @@ function App() {
               {/* Información Técnica Discreta */}
               <div className="text-[10px] text-muted-foreground/50 text-center space-y-1">
                 <p className="flex items-center justify-center gap-2 flex-wrap">
-                  <span>✅ Dexie (IndexedDB)</span>
+                  <span>✅ Supabase</span>
                   <span>•</span>
                   <span>✅ TanStack Query</span>
                   <span>•</span>
