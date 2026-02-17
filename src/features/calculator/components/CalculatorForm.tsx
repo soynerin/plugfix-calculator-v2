@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/shared/ui/select';
 import { formatARS, formatUSD } from '@/shared/utils/formatters';
+import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import type { PriceBreakdown, RepairHistory } from '@/core/domain/models';
 
 export function CalculatorForm() {
@@ -242,10 +243,10 @@ export function CalculatorForm() {
               <div className="text-center p-6 bg-primary/5 rounded-lg border-2 border-primary">
                 <p className="text-sm text-muted-foreground mb-1">Precio Final</p>
                 <p className="text-4xl font-bold text-primary">
-                  {formatARS(result.finalPriceARS)}
+                  <AnimatedNumber value={result.finalPriceARS} currency="ARS" />
                 </p>
                 <p className="text-lg text-muted-foreground mt-1">
-                  ≈ {formatUSD(result.finalPriceUSD)}
+                  ≈ <AnimatedNumber value={result.finalPriceUSD} currency="USD" />
                 </p>
               </div>
 
@@ -255,25 +256,35 @@ export function CalculatorForm() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Costo Repuesto (con margen):</span>
-                    <span className="font-medium">{formatARS(result.partCostARS)}</span>
+                    <span className="font-medium">
+                      <AnimatedNumber value={result.partCostARS} currency="ARS" />
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Mano de Obra:</span>
-                    <span className="font-medium">{formatARS(result.laborCostARS)}</span>
+                    <span className="font-medium">
+                      <AnimatedNumber value={result.laborCostARS} currency="ARS" />
+                    </span>
                   </div>
                   {result.riskPremiumARS > 0 && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Prima de Riesgo:</span>
-                      <span className="font-medium">{formatARS(result.riskPremiumARS)}</span>
+                      <span className="font-medium">
+                        <AnimatedNumber value={result.riskPremiumARS} currency="ARS" />
+                      </span>
                     </div>
                   )}
                   <div className="pt-2 border-t flex justify-between">
                     <span className="text-muted-foreground">Subtotal:</span>
-                    <span className="font-medium">{formatARS(result.subtotalARS)}</span>
+                    <span className="font-medium">
+                      <AnimatedNumber value={result.subtotalARS} currency="ARS" />
+                    </span>
                   </div>
                   <div className="flex justify-between font-bold text-base">
                     <span>Total (redondeado):</span>
-                    <span>{formatARS(result.finalPriceARS)}</span>
+                    <span>
+                      <AnimatedNumber value={result.finalPriceARS} currency="ARS" />
+                    </span>
                   </div>
                 </div>
               </div>
