@@ -1,9 +1,12 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Calculator, Receipt } from 'lucide-react';
 import { useBrands } from '@/features/inventory/hooks/useBrands';
 import { useModels } from '@/features/inventory/hooks/useModels';
 import { useServices } from '@/features/inventory/hooks/useServices';
 import { usePriceCalculator } from '../hooks/usePriceCalculator';
 import { useHistory } from '@/features/history/hooks/useHistory';
+import { useToast } from '@/shared/hooks/use-toast';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -25,6 +28,7 @@ export function CalculatorForm() {
   const { services } = useServices();
   const { calculate, config } = usePriceCalculator();
   const { addHistory } = useHistory();
+  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     clientName: '',
@@ -46,9 +50,21 @@ export function CalculatorForm() {
   const selectedService = services.find((s) => s.id === formData.serviceId);
   const selectedBrand = brands.find((b) => b.id === formData.brandId);
 
+  // Validar si todos los campos requeridos están completos
+  const isFormValid = 
+    formData.brandId && 
+    formData.modelId && 
+    formData.serviceId && 
+    formData.partCost && 
+    parseFloat(formData.partCost) > 0;
+
   const handleCalculate = () => {
     if (!selectedModel || !selectedService || !formData.partCost) {
-      alert('Completa todos los campos requeridos');
+      toast({
+        title: "Campos incompletos",
+        description: "Por favor completa todos los campos requeridos",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -86,7 +102,11 @@ export function CalculatorForm() {
 
     addHistory(historyEntry);
 
-    alert('✅ Guardado en historial');
+    toast({
+      title: "Guardado exitosamente",
+      description: "El cálculo se guardó en el historial",
+    });
+
     handleReset();
   };
 
@@ -105,12 +125,12 @@ export function CalculatorForm() {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       {/* Form */}
-      <Card>
+      <Card className="bg-white dark:bg-card shadow-lg">
         <CardHeader>
           <CardTitle>Calculadora de Precios</CardTitle>
           <CardDescription>Calcula el precio de una reparación</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
           <div>
             <Label>Cliente (opcional)</Label>
             <Input
@@ -185,124 +205,195 @@ export function CalculatorForm() {
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Costo Repuesto *</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={formData.partCost}
-                onChange={(e) => setFormData({ ...formData, partCost: e.target.value })}
-                placeholder="0.00"
-              />
-            </div>
-            <div>
-              <Label>Moneda</Label>
+          {/* Input Group: Costo + Moneda */}
+          <div>
+            <Label>Costo Repuesto *</Label>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formData.partCost}
+                  onChange={(e) => setFormData({ ...formData, partCost: e.target.value })}
+                  placeholder="0.00"
+                  className="rounded-r-none border-r-0"
+                />
+              </div>
               <Select
                 value={formData.currency}
                 onValueChange={(value: 'ARS' | 'USD') =>
                   setFormData({ ...formData, currency: value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-32 rounded-l-none">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USD">USD (Dólares)</SelectItem>
-                  <SelectItem value="ARS">ARS (Pesos)</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="ARS">ARS</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button onClick={handleCalculate} className="flex-1">
+          <div className="flex gap-2 pt-2">
+            <Button 
+              onClick={handleCalculate} 
+              className="flex-1 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:scale-100"
+              disabled={!isFormValid}
+            >
               Calcular
             </Button>
-            <Button onClick={handleReset} variant="outline">
+            <Button onClick={handleReset} variant="outline" className="transition-all hover:scale-[1.02] active:scale-[0.98]">
               Limpiar
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Result */}
-      <Card>
+      {/* Result - Ticket Style */}
+      <Card className="bg-white dark:bg-card shadow-lg">
         <CardHeader>
-          <CardTitle>Resultado</CardTitle>
-          <CardDescription>Desglose del precio calculado</CardDescription>
+          <div className="flex items-center gap-2">
+            <Receipt className="h-5 w-5 text-muted-foreground" />
+            <CardTitle>Cotización</CardTitle>
+          </div>
+          <CardDescription>Resumen de la reparación</CardDescription>
         </CardHeader>
         <CardContent>
-          {!result ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>Completa el formulario y calcula para ver el resultado</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Price Display */}
-              <div className="text-center p-6 bg-primary/5 rounded-lg border-2 border-primary">
-                <p className="text-sm text-muted-foreground mb-1">Precio Final</p>
-                <p className="text-4xl font-bold text-primary">
-                  <AnimatedNumber value={result.finalPriceARS} currency="ARS" />
-                </p>
-                <p className="text-lg text-muted-foreground mt-1">
-                  ≈ <AnimatedNumber value={result.finalPriceUSD} currency="USD" />
-                </p>
-              </div>
+          <AnimatePresence mode="wait">
+            {!result ? (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center py-16"
+              >
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <Calculator className="h-16 w-16 mx-auto text-gray-300 dark:text-gray-700 mb-4" />
+                  <p className="text-muted-foreground text-sm">
+                    Ingresa los datos para ver la estimación
+                  </p>
+                </motion.div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="result"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6"
+              >
+                {/* Precio Principal - Estilo Ticket */}
+                <div className="text-center py-8 border-b-2 border-dashed border-gray-200 dark:border-gray-700">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+                    Total a Cobrar
+                  </p>
+                  <motion.p
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+                    className="text-5xl font-bold text-gray-900 dark:text-gray-100"
+                  >
+                    <AnimatedNumber value={result.finalPriceARS} currency="ARS" />
+                  </motion.p>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-lg text-muted-foreground mt-2"
+                  >
+                    ≈ <AnimatedNumber value={result.finalPriceUSD} currency="USD" />
+                  </motion.p>
+                </div>
 
-              {/* Breakdown */}
-              <div className="space-y-3 text-sm">
-                <h3 className="font-semibold">Desglose:</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Costo Repuesto (con margen):</span>
-                    <span className="font-medium">
-                      <AnimatedNumber value={result.partCostARS} currency="ARS" />
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Mano de Obra:</span>
-                    <span className="font-medium">
-                      <AnimatedNumber value={result.laborCostARS} currency="ARS" />
-                    </span>
-                  </div>
-                  {result.riskPremiumARS > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Prima de Riesgo:</span>
-                      <span className="font-medium">
-                        <AnimatedNumber value={result.riskPremiumARS} currency="ARS" />
+                {/* Desglose - Estilo Recibo */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="space-y-3 text-sm pb-4 border-b border-dashed border-gray-200 dark:border-gray-700"
+                >
+                  <h3 className="font-semibold text-base mb-3 text-gray-900 dark:text-gray-100">
+                    Desglose de Costos
+                  </h3>
+                  <div className="space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Repuesto + Margen</span>
+                      <span className="font-medium tabular-nums">
+                        <AnimatedNumber value={result.partCostARS} currency="ARS" />
                       </span>
                     </div>
-                  )}
-                  <div className="pt-2 border-t flex justify-between">
-                    <span className="text-muted-foreground">Subtotal:</span>
-                    <span className="font-medium">
-                      <AnimatedNumber value={result.subtotalARS} currency="ARS" />
-                    </span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Mano de Obra</span>
+                      <span className="font-medium tabular-nums">
+                        <AnimatedNumber value={result.laborCostARS} currency="ARS" />
+                      </span>
+                    </div>
+                    {result.riskPremiumARS > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Prima de Riesgo</span>
+                        <span className="font-medium tabular-nums">
+                          <AnimatedNumber value={result.riskPremiumARS} currency="ARS" />
+                        </span>
+                      </div>
+                    )}
+                    <div className="pt-2 mt-2 border-t flex justify-between items-center">
+                      <span className="text-muted-foreground">Subtotal</span>
+                      <span className="font-medium tabular-nums">
+                        <AnimatedNumber value={result.subtotalARS} currency="ARS" />
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between font-bold text-base">
-                    <span>Total (redondeado):</span>
-                    <span>
-                      <AnimatedNumber value={result.finalPriceARS} currency="ARS" />
-                    </span>
-                  </div>
-                </div>
-              </div>
+                </motion.div>
 
-              {/* Config Info */}
-              {config && (
-                <div className="pt-4 border-t text-xs text-muted-foreground space-y-1">
-                  <p>• Tarifa: {formatARS(config.hourlyRate)}/hora</p>
-                  <p>• Margen: {config.margin}%</p>
-                  <p>• Cotización: 1 USD = {formatARS(config.usdRate)}</p>
-                </div>
-              )}
+                {/* Info de Configuración */}
+                {config && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-xs text-muted-foreground space-y-1 pb-4 border-b border-dashed border-gray-200 dark:border-gray-700"
+                  >
+                    <p className="flex justify-between">
+                      <span>Tarifa por hora:</span>
+                      <span className="tabular-nums">{formatARS(config.hourlyRate)}</span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span>Margen repuestos:</span>
+                      <span className="tabular-nums">{config.margin}%</span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span>Cotización USD:</span>
+                      <span className="tabular-nums">{formatARS(config.usdRate)}</span>
+                    </p>
+                  </motion.div>
+                )}
 
-              <Button onClick={handleSaveToHistory} className="w-full" variant="secondary">
-                Guardar en Historial
-              </Button>
-            </div>
-          )}
+                {/* Botón de Guardar */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  <Button 
+                    onClick={handleSaveToHistory} 
+                    className="w-full transition-all hover:scale-[1.02] active:scale-[0.98]" 
+                    variant="default"
+                    size="lg"
+                  >
+                    Guardar en Historial
+                  </Button>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
     </div>

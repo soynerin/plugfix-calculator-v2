@@ -11,6 +11,7 @@ import { ServiceManager } from '@/features/inventory/components/ServiceManager';
 import { ConfigManager } from '@/features/inventory/components/ConfigManager';
 import { HistoryViewer } from '@/features/history/components/HistoryViewer';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
+import { Toaster } from '@/shared/ui/toaster';
 import { pageVariants, pageTransition } from '@/shared/utils/animations';
 
 // Crear instancia de QueryClient
@@ -71,12 +72,12 @@ function App() {
       <div className="min-h-screen bg-background">
         {/* Header */}
         <header className="border-b bg-card">
-          <div className="container mx-auto px-4 py-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
+          <div className="container mx-auto px-4 py-6 max-w-7xl">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
                 <h1 className="text-3xl font-bold">PlugFix Calculator v2.0</h1>
-                <p className="text-muted-foreground">
-                  Sistema de cálculo de precios para reparaciones • React + TypeScript + Dexie
+                <p className="text-xs text-muted-foreground">
+                  Sistema de cálculo de precios para reparaciones
                 </p>
               </div>
               <ThemeToggle />
@@ -85,7 +86,7 @@ function App() {
         </header>
 
         {/* Main Content */}
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 py-8 max-w-7xl">
           <Tabs defaultValue="calculator" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-6">
               <TabsTrigger value="calculator">🧮 Calculadora</TabsTrigger>
@@ -214,12 +215,12 @@ function App() {
 
         {/* Footer */}
         <footer className="border-t mt-12">
-          <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-            <p>PlugFix Calculator v2.0 • Migración profesional de Vanilla JS a React</p>
-            <p className="mt-1">Arquitectura: Clean Architecture + Repository Pattern + Adapter Pattern</p>
+          <div className="container mx-auto px-4 py-4 text-center text-xs text-muted-foreground/60 max-w-7xl">
+            <p>PlugFix Calculator v2.0</p>
           </div>
         </footer>
       </div>
+      <Toaster />
     </QueryClientProvider>
   );
 }
