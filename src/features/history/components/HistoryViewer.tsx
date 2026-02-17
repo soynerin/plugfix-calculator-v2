@@ -7,7 +7,7 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
-import { Trash2, Download, Search, Filter, ClipboardList } from 'lucide-react';
+import { Trash2, Download, Search, Filter, ClipboardList, ChevronDown, ChevronUp, User, Calendar } from 'lucide-react';
 import { EmptyState } from '@/shared/ui/empty-state';
 import {
   Select,
@@ -49,6 +49,9 @@ export function HistoryViewer() {
   
   // Estado para animación de fade-out
   const [fadingIds, setFadingIds] = useState<Set<string>>(new Set());
+  
+  // Estado para controlar el colapso de filtros en móvil
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const { brands } = useBrands();
   const { models } = useModels();
@@ -135,6 +138,13 @@ export function HistoryViewer() {
     });
   };
 
+  const formatDateShort = (date: Date) => {
+    return new Date(date).toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: 'short',
+    });
+  };
+
   if (isLoading) {
     return <div className="text-center p-8">Cargando historial...</div>;
   }
@@ -164,100 +174,122 @@ export function HistoryViewer() {
         <CardContent className="pt-6 space-y-6">
           {/* Sección de Filtros */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            {/* Botón de Filtros Colapsable (solo móvil) */}
+            <Button
+              onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+              variant="outline"
+              className="w-full md:hidden flex items-center justify-between gap-2"
+            >
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <span>Filtrar Reparaciones</span>
+              </div>
+              {isFiltersOpen ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+
+            {/* Título de Filtros (solo escritorio) */}
+            <div className="hidden md:flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Filter className="h-4 w-4" />
               Filtros de Búsqueda
             </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Cliente</Label>
-                <Input
-                  value={localFilters.clientName}
-                  onChange={(e) => setLocalFilters({ ...localFilters, clientName: e.target.value })}
-                  placeholder="Nombre del cliente"
-                  className="h-9"
-                />
+
+            {/* Formulario de Filtros */}
+            <div className={`space-y-4 ${isFiltersOpen ? 'block' : 'hidden'} md:block`}>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Cliente</Label>
+                  <Input
+                    value={localFilters.clientName}
+                    onChange={(e) => setLocalFilters({ ...localFilters, clientName: e.target.value })}
+                    placeholder="Nombre del cliente"
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Marca</Label>
+                  <Select
+                    value={localFilters.brandId}
+                    onValueChange={(value) =>
+                      setLocalFilters({ ...localFilters, brandId: value, modelId: 'ALL' })
+                    }
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Todas las marcas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Todas las marcas</SelectItem>
+                      {brands.map((brand) => (
+                        <SelectItem key={brand.id} value={brand.id}>
+                          {brand.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Modelo</Label>
+                  <Select
+                    value={localFilters.modelId}
+                    onValueChange={(value) => setLocalFilters({ ...localFilters, modelId: value })}
+                    disabled={!localFilters.brandId || localFilters.brandId === 'ALL'}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder={localFilters.brandId && localFilters.brandId !== 'ALL' ? "Todos los modelos" : "Selecciona marca primero"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Todos los modelos</SelectItem>
+                      {filteredModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Fecha Desde</Label>
+                  <Input
+                    type="date"
+                    value={localFilters.dateFrom}
+                    onChange={(e) =>
+                      setLocalFilters({ ...localFilters, dateFrom: e.target.value })
+                    }
+                    className="h-9"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Marca</Label>
-                <Select
-                  value={localFilters.brandId}
-                  onValueChange={(value) =>
-                    setLocalFilters({ ...localFilters, brandId: value, modelId: 'ALL' })
-                  }
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Todas las marcas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">Todas las marcas</SelectItem>
-                    {brands.map((brand) => (
-                      <SelectItem key={brand.id} value={brand.id}>
-                        {brand.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Modelo</Label>
-                <Select
-                  value={localFilters.modelId}
-                  onValueChange={(value) => setLocalFilters({ ...localFilters, modelId: value })}
-                  disabled={!localFilters.brandId || localFilters.brandId === 'ALL'}
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder={localFilters.brandId && localFilters.brandId !== 'ALL' ? "Todos los modelos" : "Selecciona marca primero"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">Todos los modelos</SelectItem>
-                    {filteredModels.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
-                        {model.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Fecha Desde</Label>
-                <Input
-                  type="date"
-                  value={localFilters.dateFrom}
-                  onChange={(e) =>
-                    setLocalFilters({ ...localFilters, dateFrom: e.target.value })
-                  }
-                  className="h-9"
-                />
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={handleSearch} size="sm" className="gap-2">
-                <Search className="h-4 w-4" />
-                Buscar
-              </Button>
-              <Button onClick={handleClearFilters} variant="ghost" size="sm">
-                Limpiar Filtros
-              </Button>
-              <div className="ml-auto flex gap-2">
-                <Button 
-                  onClick={() => handleExport('csv')} 
-                  variant="outline" 
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  CSV
+              <div className="flex flex-wrap items-center gap-2">
+                <Button onClick={handleSearch} size="sm" className="gap-2">
+                  <Search className="h-4 w-4" />
+                  Buscar
                 </Button>
-                <Button 
-                  onClick={() => handleExport('json')} 
-                  variant="outline" 
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  JSON
+                <Button onClick={handleClearFilters} variant="ghost" size="sm">
+                  Limpiar Filtros
                 </Button>
+                <div className="ml-auto flex gap-2">
+                  <Button 
+                    onClick={() => handleExport('csv')} 
+                    variant="outline" 
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    CSV
+                  </Button>
+                  <Button 
+                    onClick={() => handleExport('json')} 
+                    variant="outline" 
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    JSON
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -272,71 +304,149 @@ export function HistoryViewer() {
                 className="py-20"
               />
             ) : (
-              <div className="rounded-lg border overflow-hidden">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-b border-gray-200 dark:border-gray-800">
-                        <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Fecha</TableHead>
-                        <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Cliente</TableHead>
-                        <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Marca</TableHead>
-                        <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Modelo</TableHead>
-                        <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Servicio</TableHead>
-                        <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400 text-right">Costo Rep.</TableHead>
-                        <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400 text-right">Precio Final</TableHead>
-                        <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400 text-center">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {history.map((entry) => (
-                        <TableRow
-                          key={entry.id}
-                          className={`
-                            cursor-pointer 
-                            border-b border-gray-100 dark:border-gray-800 
-                            hover:bg-gray-50 dark:hover:bg-gray-900/50
-                            transition-all duration-300
-                            ${fadingIds.has(entry.id) ? 'opacity-0' : 'opacity-100'}
-                          `}
-                          onClick={() => setSelectedEntry(entry)}
+              <>
+                {/* Vista de Tarjetas - Solo Móvil */}
+                <div className="block md:hidden space-y-4">
+                  {history.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className={`
+                        bg-white dark:bg-gray-800
+                        rounded-lg 
+                        border border-gray-200 dark:border-gray-700
+                        shadow-sm
+                        overflow-hidden
+                        transition-all duration-300
+                        ${fadingIds.has(entry.id) ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}
+                      `}
+                    >
+                      {/* Cabecera */}
+                      <div 
+                        className="flex items-center justify-between p-4 cursor-pointer"
+                        onClick={() => setSelectedEntry(entry)}
+                      >
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                          <Calendar className="h-3.5 w-3.5" />
+                          <span>{formatDateShort(entry.date)}</span>
+                        </div>
+                        <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
+                          {entry.brand}
+                        </div>
+                      </div>
+
+                      {/* Cuerpo */}
+                      <div 
+                        className="px-4 pb-4 space-y-2 cursor-pointer"
+                        onClick={() => setSelectedEntry(entry)}
+                      >
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                          {entry.model}
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {entry.service}
+                        </p>
+                        {entry.clientName && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                            <User className="h-3.5 w-3.5" />
+                            <span>{entry.clientName}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Pie */}
+                      <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                        <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                          {formatARS(entry.finalPrice)}
+                        </div>
+                        <button
+                          onClick={(e) => handleDelete(entry.id, entry.clientName || 'este cliente', e)}
+                          className="
+                            inline-flex items-center justify-center
+                            h-10 w-10 
+                            rounded-lg 
+                            text-gray-400 
+                            hover:text-red-500 
+                            hover:bg-red-50 
+                            dark:hover:bg-red-950/50
+                            transition-colors
+                            active:scale-95
+                          "
+                          title="Eliminar"
                         >
-                          <TableCell className="font-medium text-sm py-4">{formatDate(entry.date)}</TableCell>
-                          <TableCell className="text-sm py-4">{entry.clientName || '—'}</TableCell>
-                          <TableCell className="text-sm py-4">{entry.brand}</TableCell>
-                          <TableCell className="text-sm py-4">{entry.model}</TableCell>
-                          <TableCell className="text-sm py-4">{entry.service}</TableCell>
-                          <TableCell className="text-sm text-right py-4">
-                            {entry.currency === 'USD'
-                              ? formatUSD(entry.partCost)
-                              : formatARS(entry.partCost)}
-                          </TableCell>
-                          <TableCell className="text-sm text-right font-semibold py-4 text-gray-900 dark:text-gray-100">
-                            {formatARS(entry.finalPrice)}
-                          </TableCell>
-                          <TableCell className="text-center py-4">
-                            <button
-                              onClick={(e) => handleDelete(entry.id, entry.clientName || 'este cliente', e)}
-                              className="
-                                inline-flex items-center justify-center
-                                h-8 w-8 
-                                rounded-md 
-                                text-gray-400 
-                                hover:text-red-500 
-                                hover:bg-red-50 
-                                dark:hover:bg-red-950/50
-                                transition-colors
-                              "
-                              title="Eliminar"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
+
+                {/* Vista de Tabla - Solo Escritorio */}
+                <div className="hidden md:block rounded-lg border overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-b border-gray-200 dark:border-gray-800">
+                          <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Fecha</TableHead>
+                          <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Cliente</TableHead>
+                          <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Marca</TableHead>
+                          <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Modelo</TableHead>
+                          <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Servicio</TableHead>
+                          <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400 text-right">Costo Rep.</TableHead>
+                          <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400 text-right">Precio Final</TableHead>
+                          <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400 text-center">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {history.map((entry) => (
+                          <TableRow
+                            key={entry.id}
+                            className={`
+                              cursor-pointer 
+                              border-b border-gray-100 dark:border-gray-800 
+                              hover:bg-gray-50 dark:hover:bg-gray-900/50
+                              transition-all duration-300
+                              ${fadingIds.has(entry.id) ? 'opacity-0' : 'opacity-100'}
+                            `}
+                            onClick={() => setSelectedEntry(entry)}
+                          >
+                            <TableCell className="font-medium text-sm py-4">{formatDate(entry.date)}</TableCell>
+                            <TableCell className="text-sm py-4">{entry.clientName || '—'}</TableCell>
+                            <TableCell className="text-sm py-4">{entry.brand}</TableCell>
+                            <TableCell className="text-sm py-4">{entry.model}</TableCell>
+                            <TableCell className="text-sm py-4">{entry.service}</TableCell>
+                            <TableCell className="text-sm text-right py-4">
+                              {entry.currency === 'USD'
+                                ? formatUSD(entry.partCost)
+                                : formatARS(entry.partCost)}
+                            </TableCell>
+                            <TableCell className="text-sm text-right font-semibold py-4 text-gray-900 dark:text-gray-100">
+                              {formatARS(entry.finalPrice)}
+                            </TableCell>
+                            <TableCell className="text-center py-4">
+                              <button
+                                onClick={(e) => handleDelete(entry.id, entry.clientName || 'este cliente', e)}
+                                className="
+                                  inline-flex items-center justify-center
+                                  h-8 w-8 
+                                  rounded-md 
+                                  text-gray-400 
+                                  hover:text-red-500 
+                                  hover:bg-red-50 
+                                  dark:hover:bg-red-950/50
+                                  transition-colors
+                                "
+                                title="Eliminar"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </CardContent>
