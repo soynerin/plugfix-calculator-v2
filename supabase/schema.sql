@@ -28,6 +28,7 @@ CREATE TABLE models (
   name VARCHAR(255) NOT NULL,
   risk_factor DECIMAL(3,2) NOT NULL CHECK (risk_factor BETWEEN 1.0 AND 2.5),
   category VARCHAR(50) CHECK (category IN ('Gama Baja', 'Gama Media', 'Gama Alta', 'Premium')),
+  release_year INTEGER CHECK (release_year >= 2000 AND release_year <= 2100),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(brand_id, name)
@@ -37,6 +38,7 @@ CREATE TABLE models (
 CREATE INDEX idx_models_brand_id ON models(brand_id);
 CREATE INDEX idx_models_name ON models(name);
 CREATE INDEX idx_models_category ON models(category);
+CREATE INDEX idx_models_release_year ON models(release_year);
 
 -- ============================================
 -- SERVICES TABLE

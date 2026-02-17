@@ -203,7 +203,8 @@ export class SupabaseAdapter implements IDatabaseService {
         brand_id: model.brandId,
         name: model.name,
         risk_factor: model.riskFactor,
-        category: model.category || null
+        category: model.category || null,
+        release_year: model.releaseYear || null
       })
       .select()
       .single();
@@ -219,6 +220,7 @@ export class SupabaseAdapter implements IDatabaseService {
     if (modelData.name !== undefined) updateData.name = modelData.name;
     if (modelData.riskFactor !== undefined) updateData.risk_factor = modelData.riskFactor;
     if (modelData.category !== undefined) updateData.category = modelData.category;
+    if (modelData.releaseYear !== undefined) updateData.release_year = modelData.releaseYear;
 
     const { data, error } = await this.client
       .from('models')
@@ -277,7 +279,8 @@ export class SupabaseAdapter implements IDatabaseService {
             brand_id: model.brandId,
             name: model.name.trim(),
             risk_factor: model.riskFactor || 1.0,
-            category: model.category || 'Gama Media'
+            category: model.category || 'Gama Media',
+            release_year: model.releaseYear || null
           });
 
         if (error) {
@@ -673,6 +676,10 @@ export class SupabaseAdapter implements IDatabaseService {
 
     if (data.category && typeof data.category === 'string') {
       model.category = data.category as 'Gama Baja' | 'Gama Media' | 'Gama Alta' | 'Premium';
+    }
+
+    if (data.release_year && typeof data.release_year === 'number') {
+      model.releaseYear = data.release_year;
     }
 
     if (data.created_at) {

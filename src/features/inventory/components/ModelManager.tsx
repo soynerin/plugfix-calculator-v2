@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useModels } from '../hooks/useModels';
 import { useBrands } from '../hooks/useBrands';
 import { useConfirm } from '@/shared/hooks/useConfirm';
@@ -23,7 +23,8 @@ import {
 } from '@/shared/ui/dialog';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { BulkImportModal, BulkImportResult } from '@/shared/components/BulkImportModal';
-import { Database, Search, Plus, Trash2, AlertTriangle, Upload, Pencil } from 'lucide-react';
+import { Database, Search, Plus, Trash2, AlertTriangle, Upload, Pencil, Calendar } from 'lucide-react';
+import { suggestDeviceRiskAndCategory, isValidReleaseYear, getAgeDescription, calculateDeviceAge } from '@/core/utils/deviceAgeCalculator';
 
 // Mapeo de categorías a factores de riesgo
 const RISK_FACTOR_BY_CATEGORY: Record<string, number> = {
@@ -46,12 +47,14 @@ export function ModelManager() {
     brandId: string;
     riskFactor: string;
     category: 'Gama Baja' | 'Gama Media' | 'Gama Alta' | 'Premium';
+    releaseYear: string;
   } | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     brandId: '',
     riskFactor: '1.0',
     category: 'Gama Media' as const,
+    releaseYear: '',
   });
 
   // Filtrar modelos por término de búsqueda
@@ -64,10 +67,24 @@ export function ModelManager() {
       return (
         model.name.toLowerCase().includes(searchLower) ||
         brand?.name.toLowerCase().includes(searchLower) ||
-        model.category?.toLowerCase().includes(searchLower)
+        model.category?.toLowerCase().includes(searchLower) ||
+        model.releaseYear?.toString().includes(searchLower)
       );
     });
   }, [models, brands, searchTerm]);
+
+  // Auto-sugerencia basada en el año de lanzamiento
+  useEffect(() => {
+    if (formData.releaseYear && isValidReleaseYear(parseInt(formData.releaseYear))) {
+      const year = parseInt(formData.releaseYear);
+      const suggestion = suggestDeviceRiskAndCategory(year);
+      setFormData(prev => ({
+        ...prev,
+        category: suggestion.category,
+        riskFactor: suggestion.riskFactor.toString()
+      }));
+    }
+  }, [formData.releaseYear]);
 
   const handleAddModel = () => {
     if (formData.name.trim() && formData.brandId) {
@@ -76,8 +93,9 @@ export function ModelManager() {
         brandId: formData.brandId,
         riskFactor: parseFloat(formData.riskFactor),
         category: formData.category,
+        releaseYear: formData.releaseYear ? parseInt(formData.releaseYear) : undefined,
       });
-      setFormData({ name: '', brandId: '', riskFactor: '1.0', category: 'Gama Media' });
+      setFormData({ name: '', brandId: '', riskFactor: '1.0', category: 'Gama Media', releaseYear: '' });
     }
   };
 
@@ -88,6 +106,7 @@ export function ModelManager() {
       brandId: model.brandId,
       riskFactor: model.riskFactor.toString(),
       category: (model.category || 'Gama Media') as 'Gama Baja' | 'Gama Media' | 'Gama Alta' | 'Premium',
+      releaseYear: model.releaseYear?.toString() || '',
     });
     setIsEditModalOpen(true);
   };
@@ -101,6 +120,7 @@ export function ModelManager() {
           brandId: selectedModel.brandId,
           riskFactor: parseFloat(selectedModel.riskFactor),
           category: selectedModel.category,
+          releaseYear: selectedModel.releaseYear ? parseInt(selectedModel.releaseYear) : undefined,
         },
       });
       setIsEditModalOpen(false);
@@ -138,6 +158,7 @@ export function ModelManager() {
           brandId: brand.id,
           riskFactor: item.factorRiesgo || item.riskFactor || 1.0,
           category: (item.categoria || item.category || 'Gama Media') as 'Gama Baja' | 'Gama Media' | 'Gama Alta' | 'Premium',
+          releaseYear: item.añoLanzamiento || item.releaseYear || undefined,
         };
       });
 
@@ -263,6 +284,29 @@ export function ModelManager() {
               </Select>
             </div>
 
+            {/* Fila 3: Año de Lanzamiento */}
+            <div>
+              <Label>Año de Lanzamiento (Opcional)</Label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  min="2000"
+                  max={new Date().getFullYear() + 1}
+                  value={formData.releaseYear}
+                  onChange={(e) => setFormData({ ...formData, releaseYear: e.target.value })}
+                  placeholder={`Ej: ${new Date().getFullYear() - 2}`}
+                  className="pl-10"
+                />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+              {formData.releaseYear && isValidReleaseYear(parseInt(formData.releaseYear)) && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {getAgeDescription(calculateDeviceAge(parseInt(formData.releaseYear)))} - 
+                  Gama y Riesgo sugeridos automáticamente
+                </p>
+              )}
+            </div>
+
             {/* Botón Agregar - Ancho completo */}
             <div className="md:col-span-2">
               <Button 
@@ -358,6 +402,14 @@ export function ModelManager() {
                     <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getCategoryBadgeStyles(model.category || 'Gama Media')}`}>
                       {model.category || 'Gama Media'}
                     </div>
+
+                    {/* Badge de Año de Lanzamiento */}
+                    {model.releaseYear && (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                        <Calendar className="h-3 w-3" />
+                        <span>{model.releaseYear} • {getAgeDescription(calculateDeviceAge(model.releaseYear))}</span>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -447,6 +499,29 @@ export function ModelManager() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Año de Lanzamiento */}
+              <div className="grid gap-2">
+                <Label htmlFor="edit-year">Año de Lanzamiento (Opcional)</Label>
+                <div className="relative">
+                  <Input
+                    id="edit-year"
+                    type="number"
+                    min="2000"
+                    max={new Date().getFullYear() + 1}
+                    value={selectedModel.releaseYear}
+                    onChange={(e) => setSelectedModel({ ...selectedModel, releaseYear: e.target.value })}
+                    placeholder={`Ej: ${new Date().getFullYear() - 2}`}
+                    className="focus:ring-2 focus:ring-primary-500 pl-10"
+                  />
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+                {selectedModel.releaseYear && isValidReleaseYear(parseInt(selectedModel.releaseYear)) && (
+                  <p className="text-xs text-muted-foreground">
+                    {getAgeDescription(calculateDeviceAge(parseInt(selectedModel.releaseYear)))}
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
@@ -477,9 +552,9 @@ export function ModelManager() {
         open={showImportModal}
         onOpenChange={setShowImportModal}
         title="Importar Modelos desde JSON"
-        description="Pega un array de objetos JSON con los modelos que deseas importar. Los modelos existentes (mismo nombre y marca) serán omitidos."
-        placeholder='[{"nombre": "Galaxy S23", "marca": "Samsung", "factorRiesgo": 1.2, "categoria": "Gama Alta"}]'
-        exampleJson='[{"nombre": "Galaxy S23", "marca": "Samsung", "factorRiesgo": 1.2, "categoria": "Gama Alta"}]'
+        description="Pega un array de objetos JSON con los modelos que deseas importar. Los modelos existentes (mismo nombre y marca) serán omitidos. El campo 'añoLanzamiento' es opcional."
+        placeholder='[{"nombre": "Galaxy S23", "marca": "Samsung", "factorRiesgo": 1.2, "categoria": "Gama Alta", "añoLanzamiento": 2023}]'
+        exampleJson='[{"nombre": "Galaxy S23", "marca": "Samsung", "factorRiesgo": 1.2, "categoria": "Gama Alta", "añoLanzamiento": 2023}]'
         onImport={handleBulkImport}
       />
     </div>
