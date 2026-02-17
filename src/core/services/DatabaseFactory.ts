@@ -22,14 +22,7 @@ export class DatabaseFactory {
         break;
       
       case 'supabase':
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        
-        if (!supabaseUrl || !supabaseKey) {
-          throw new Error('Supabase credentials not found in environment');
-        }
-        
-        this.instance = new SupabaseAdapter(supabaseUrl, supabaseKey);
+        this.instance = new SupabaseAdapter();
         break;
       
       default:
