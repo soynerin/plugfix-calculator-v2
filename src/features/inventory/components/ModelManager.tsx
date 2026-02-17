@@ -25,6 +25,14 @@ import { EmptyState } from '@/shared/ui/empty-state';
 import { BulkImportModal, BulkImportResult } from '@/shared/components/BulkImportModal';
 import { Database, Search, Plus, Trash2, AlertTriangle, Upload, Pencil } from 'lucide-react';
 
+// Mapeo de categorías a factores de riesgo
+const RISK_FACTOR_BY_CATEGORY: Record<string, number> = {
+  'Premium': 2.0,
+  'Gama Alta': 1.7,
+  'Gama Media': 1.4,
+  'Gama Baja': 1.1,
+};
+
 export function ModelManager() {
   const { brands } = useBrands();
   const { models, addModel, updateModel, deleteModel, bulkAddModels } = useModels();
@@ -237,7 +245,11 @@ export function ModelManager() {
               <Label>Categoría</Label>
               <Select
                 value={formData.category}
-                onValueChange={(value: any) => setFormData({ ...formData, category: value })}
+                onValueChange={(value: any) => setFormData({ 
+                  ...formData, 
+                  category: value,
+                  riskFactor: RISK_FACTOR_BY_CATEGORY[value]?.toString() || formData.riskFactor
+                })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -418,7 +430,11 @@ export function ModelManager() {
                 <Label htmlFor="edit-category">Categoría</Label>
                 <Select
                   value={selectedModel.category}
-                  onValueChange={(value: any) => setSelectedModel({ ...selectedModel, category: value })}
+                  onValueChange={(value: any) => setSelectedModel({ 
+                    ...selectedModel, 
+                    category: value,
+                    riskFactor: RISK_FACTOR_BY_CATEGORY[value]?.toString() || selectedModel.riskFactor
+                  })}
                 >
                   <SelectTrigger id="edit-category">
                     <SelectValue />
