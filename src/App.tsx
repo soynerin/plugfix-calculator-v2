@@ -190,18 +190,18 @@ function App() {
           <div className="container mx-auto px-4 py-6 max-w-7xl">
             <div className="flex flex-col items-center gap-3">
               {/* Versión Principal */}
-              <p className="text-xs font-medium text-muted-foreground/80">
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500">
                 PlugFix Calculator v2.0
               </p>
               
               {/* Información Técnica Discreta */}
-              <div className="text-[10px] text-muted-foreground/50 text-center space-y-1">
+              <div className="text-[10px] text-gray-400 dark:text-gray-500 text-center space-y-1">
                 <p className="flex items-center justify-center gap-2 flex-wrap">
-                  <span>✅ Supabase</span>
+                  <span className="text-primary-500">✓</span> <span>Supabase</span>
                   <span>•</span>
-                  <span>✅ TanStack Query</span>
+                  <span className="text-primary-500">✓</span> <span>TanStack Query</span>
                   <span>•</span>
-                  <span>✅ Clean Architecture</span>
+                  <span className="text-primary-500">✓</span> <span>Clean Architecture</span>
                 </p>
                 <p className="flex items-center justify-center gap-1.5 flex-wrap">
                   <span>React 18.3 + TypeScript 5.6</span>

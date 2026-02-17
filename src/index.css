@@ -4,50 +4,50 @@
 
 @layer base {
   :root {
-    /* Light mode - Oceanic Turquoise Theme */
-    --background: 210 40% 98%; /* gray-50 */
-    --foreground: 222 47% 11%; /* gray-900 */
+    /* Light mode - Deep Sea Tech Theme */
+    --background: 210 20% 98%; /* gray-50 */
+    --foreground: 215 25% 27%; /* gray-700 */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 215 25% 27%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 199 89% 48%; /* primary-500 - Hero turquoise */
+    --popover-foreground: 215 25% 27%;
+    --primary: 177 96% 31%; /* primary-500 - Hero vibrante #069D95 */
     --primary-foreground: 0 0% 100%;
     --secondary: 214 32% 91%; /* gray-200 */
     --secondary-foreground: 215 25% 27%; /* gray-700 */
     --muted: 214 32% 91%; /* gray-200 */
     --muted-foreground: 215 16% 47%; /* gray-500 */
-    --accent: 199 97% 86%; /* primary-200 */
-    --accent-foreground: 201 96% 27%; /* primary-800 */
-    --destructive: 0 84.2% 60.2%;
+    --accent: 177 73% 66%; /* primary-200 */
+    --accent-foreground: 177 97% 20%; /* primary-800 */
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 214 32% 91%; /* gray-200 */
-    --input: 215 20% 66%; /* gray-300 */
-    --ring: 199 89% 48%; /* primary-500 */
+    --input: 215 20% 77%; /* gray-300 */
+    --ring: 177 96% 31%; /* primary-500 */
     --radius: 0.5rem;
   }
 
   .dark {
-    /* Dark mode - Deep oceanic backgrounds */
-    --background: 217 33% 17%; /* gray-800 */
-    --foreground: 214 32% 97%; /* gray-100 */
+    /* Dark mode - Deep oceanic immersive */
+    --background: 215 25% 17%; /* gray-800 - Azul marino profundo */
+    --foreground: 214 32% 95%; /* gray-100 */
     --card: 222 47% 11%; /* gray-900 */
-    --card-foreground: 214 32% 97%;
+    --card-foreground: 214 32% 95%;
     --popover: 222 47% 11%;
-    --popover-foreground: 214 32% 97%;
-    --primary: 199 89% 48%; /* primary-500 - same hero color */
+    --popover-foreground: 214 32% 95%;
+    --primary: 177 96% 31%; /* primary-500 - Mismo hero color */
     --primary-foreground: 0 0% 100%;
     --secondary: 215 25% 27%; /* gray-700 */
-    --secondary-foreground: 214 32% 97%;
+    --secondary-foreground: 214 32% 95%;
     --muted: 215 25% 27%; /* gray-700 */
-    --muted-foreground: 215 20% 66%; /* gray-300 */
-    --accent: 201 96% 27%; /* primary-800 */
-    --accent-foreground: 199 95% 74%; /* primary-300 */
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 214 32% 97%;
+    --muted-foreground: 215 20% 77%; /* gray-300 */
+    --accent: 177 97% 20%; /* primary-800 */
+    --accent-foreground: 177 73% 66%; /* primary-200 */
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 214 32% 95%;
     --border: 215 25% 27%; /* gray-700 */
     --input: 215 25% 27%;
-    --ring: 199 95% 74%; /* primary-300 */
+    --ring: 177 73% 66%; /* primary-200 */
   }
 }
 

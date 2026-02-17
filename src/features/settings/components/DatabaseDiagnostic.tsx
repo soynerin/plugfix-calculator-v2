@@ -94,8 +94,8 @@ export function DatabaseDiagnostic() {
                 <div className="flex items-center gap-2">
                   {result.connectionTest === true ? (
                     <>
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
-                      <span className="text-sm text-green-600 dark:text-green-400">
+                      <CheckCircle2 className="w-4 h-4 text-primary-500" />
+                      <span className="text-sm text-primary-600 dark:text-primary-400">
                         Conectado
                       </span>
                     </>
@@ -123,7 +123,7 @@ export function DatabaseDiagnostic() {
                 <div className="flex items-center gap-2">
                   {result.brandCount !== undefined ? (
                     <>
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      <CheckCircle2 className="w-4 h-4 text-primary-500" />
                       <span className="text-sm">
                         {result.brandCount} {result.brandCount === 1 ? 'marca' : 'marcas'}
                       </span>

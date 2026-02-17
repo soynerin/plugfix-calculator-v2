@@ -10,6 +10,7 @@ export default {
   theme: {
     extend: {
       colors: {
+        // NUEVA PALETA "DEEP SEA TECH"
         // Shadcn/ui semantic colors (CSS variables)
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -17,17 +18,17 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          50: '#F0F9FF',
-          100: '#E0F2FE',
-          200: '#BAE6FD',
-          300: '#7DD3FC',
-          400: '#38BDF8',
-          500: '#0EA5E9', // Hero color
-          600: '#0284C7',
-          700: '#0369A1',
-          800: '#075985',
-          900: '#0C4A6E',
-          950: '#082F49',
+          50: '#E6FFFA',  // Fondos tintados muy suaves
+          100: '#B2F5EA', // Badges claros
+          200: '#81E6D9',
+          300: '#4FD1C5',
+          400: '#2BC3B6', // Bordes de inputs en foco
+          500: '#069D95', // COLOR HÉROE VIBRANTE (Botones principales)
+          600: '#04827B', // Hover de botones
+          700: '#036862', // Textos oscuros en modo claro
+          800: '#02504C',
+          900: '#013936',
+          950: '#001F1E', // Fondos profundos en modo oscuro
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
         },
@@ -55,21 +56,43 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Neutrals with blue tint (Slate palette)
+        // Neutros tipo "Slate" (Gris con subtono azulado para armonía)
         gray: {
           50: '#F8FAFC',
-          100: '#F1F5F9',
-          200: '#E2E8F0',
+          100: '#F1F5F9', // Fondos secundarios claro
+          200: '#E2E8F0', // Bordes claro
           300: '#CBD5E1',
-          400: '#94A3B8',
+          400: '#94A3B8', // Textos secundarios / Iconos inactivos
           500: '#64748B',
           600: '#475569',
-          700: '#334155',
-          800: '#1E293B',
-          900: '#0F172A',
-          950: '#020617',
+          700: '#334155', // Texto principal claro
+          800: '#1E293B', // FONDO PRINCIPAL MODO OSCURO (Azul marino profundo)
+          900: '#0F172A', // Fondo secundario/Cards modo oscuro
+          950: '#020617', // Bordes o acentos muy oscuros
+        },
+        // Colores semánticos para estados
+        red: {
+          50: '#FEF2F2',
+          100: '#FEE2E2',
+          200: '#FECACA',
+          300: '#FCA5A5',
+          400: '#F87171',
+          500: '#EF4444', // Para botón eliminar
+          600: '#DC2626', // Hover eliminar
+          700: '#B91C1C',
+          800: '#991B1B',
+          900: '#7F1D1D',
         },
       },
+      backgroundColor: theme => ({
+        ...theme('colors'),
+      }),
+      textColor: theme => ({
+        ...theme('colors'),
+      }),
+      borderColor: theme => ({
+        ...theme('colors'),
+      }),
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
