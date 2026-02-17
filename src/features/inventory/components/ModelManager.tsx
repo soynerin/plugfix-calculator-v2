@@ -24,7 +24,7 @@ import {
 } from '@/shared/ui/dialog';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { BulkImportModal, BulkImportResult } from '@/shared/components/BulkImportModal';
-import { Database, Search, Plus, Trash2, AlertTriangle, Upload, Pencil, Calendar, ArrowUpDown } from 'lucide-react';
+import { Database, Search, Plus, Trash2, AlertTriangle, Upload, Pencil, Calendar, ArrowUpDown, X } from 'lucide-react';
 import { suggestDeviceRiskAndCategory, isValidReleaseYear, getAgeDescription, calculateDeviceAge } from '@/core/utils/deviceAgeCalculator';
 
 // Mapeo de categorías a factores de riesgo
@@ -41,6 +41,8 @@ export function ModelManager() {
   const { confirm } = useConfirm();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'year-desc' | 'year-asc' | 'name-asc' | 'name-desc' | 'risk-desc' | 'risk-asc'>('year-desc');
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeBrand, setActiveBrand] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<{
@@ -65,43 +67,65 @@ export function ModelManager() {
     releaseYear: '',
   });
 
-  // Filtrar modelos por término de búsqueda
-  const filteredModels = useMemo(() => {
-    if (!searchTerm.trim()) return models;
+  // Filtrar y ordenar modelos: búsqueda + categoría + marca + ordenamiento
+  const filteredAndSortedModels = useMemo(() => {
+    let filtered = [...models];
     
-    const searchLower = searchTerm.toLowerCase().trim();
-    return models.filter((model) => {
-      const brand = brands.find((b) => b.id === model.brandId);
-      return (
-        model.name.toLowerCase().includes(searchLower) ||
-        brand?.name.toLowerCase().includes(searchLower) ||
-        model.category?.toLowerCase().includes(searchLower) ||
-        model.releaseYear?.toString().includes(searchLower)
-      );
-    });
-  }, [models, brands, searchTerm]);
-
-  // Ordenar modelos según el criterio seleccionado
-  const sortedModels = useMemo(() => {
-    const modelsCopy = [...filteredModels];
+    // 1. Filtrar por búsqueda
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter((model) => {
+        const brand = brands.find((b) => b.id === model.brandId);
+        return (
+          model.name.toLowerCase().includes(searchLower) ||
+          brand?.name.toLowerCase().includes(searchLower) ||
+          model.category?.toLowerCase().includes(searchLower) ||
+          model.releaseYear?.toString().includes(searchLower)
+        );
+      });
+    }
     
+    // 2. Filtrar por categoría activa
+    if (activeCategory) {
+      filtered = filtered.filter((model) => model.category === activeCategory);
+    }
+    
+    // 3. Filtrar por marca activa
+    if (activeBrand) {
+      filtered = filtered.filter((model) => model.brandId === activeBrand);
+    }
+    
+    // 4. Ordenar según criterio seleccionado
     switch (sortBy) {
       case 'year-desc':
-        return modelsCopy.sort((a, b) => (b.releaseYear || 0) - (a.releaseYear || 0));
+        return filtered.sort((a, b) => (b.releaseYear || 0) - (a.releaseYear || 0));
       case 'year-asc':
-        return modelsCopy.sort((a, b) => (a.releaseYear || 0) - (b.releaseYear || 0));
+        return filtered.sort((a, b) => (a.releaseYear || 0) - (b.releaseYear || 0));
       case 'name-asc':
-        return modelsCopy.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+        return filtered.sort((a, b) => a.name.localeCompare(b.name, 'es'));
       case 'name-desc':
-        return modelsCopy.sort((a, b) => b.name.localeCompare(a.name, 'es'));
+        return filtered.sort((a, b) => b.name.localeCompare(a.name, 'es'));
       case 'risk-desc':
-        return modelsCopy.sort((a, b) => b.riskFactor - a.riskFactor);
+        return filtered.sort((a, b) => b.riskFactor - a.riskFactor);
       case 'risk-asc':
-        return modelsCopy.sort((a, b) => a.riskFactor - b.riskFactor);
+        return filtered.sort((a, b) => a.riskFactor - b.riskFactor);
       default:
-        return modelsCopy;
+        return filtered;
     }
-  }, [filteredModels, sortBy]);
+  }, [models, brands, searchTerm, activeCategory, activeBrand, sortBy]);
+
+  // Obtener categorías y marcas únicas de los modelos
+  const categories = useMemo(() => {
+    const uniqueCategories = Array.from(new Set(models.map(m => m.category).filter(Boolean)));
+    return ['Premium', 'Gama Alta', 'Gama Media', 'Gama Baja'].filter(cat => 
+      uniqueCategories.includes(cat as any)
+    );
+  }, [models]);
+  
+  const availableBrands = useMemo(() => {
+    const brandIds = new Set(models.map(m => m.brandId));
+    return brands.filter(b => brandIds.has(b.id));
+  }, [brands, models]);
 
   // Auto-sugerencia basada en el año de lanzamiento
   useEffect(() => {
@@ -397,6 +421,81 @@ export function ModelManager() {
         </div>
       </div>
 
+      {/* Filtros Rápidos (Pills) */}
+      {(categories.length > 0 || availableBrands.length > 0) && (
+        <Card className="border-primary-100 dark:border-primary-900/30">
+          <CardContent className="p-4 space-y-3">
+            {/* Filtros por Categoría */}
+            {categories.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Categoría</Label>
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((category) => {
+                    const isActive = activeCategory === category;
+                    return (
+                      <button
+                        key={category}
+                        onClick={() => setActiveCategory(isActive ? null : category)}
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                          isActive
+                            ? 'bg-primary-500 text-white shadow-md hover:bg-primary-600 scale-105'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        {category}
+                        {isActive && <X className="h-3 w-3" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            
+            {/* Filtros por Marca */}
+            {availableBrands.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Marca</Label>
+                <div className="flex flex-wrap gap-2">
+                  {availableBrands.map((brand) => {
+                    const isActive = activeBrand === brand.id;
+                    return (
+                      <button
+                        key={brand.id}
+                        onClick={() => setActiveBrand(isActive ? null : brand.id)}
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                          isActive
+                            ? 'bg-primary-500 text-white shadow-md hover:bg-primary-600 scale-105'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        {brand.name}
+                        {isActive && <X className="h-3 w-3" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            
+            {/* Botón para limpiar todos los filtros */}
+            {(activeCategory || activeBrand) && (
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => {
+                    setActiveCategory(null);
+                    setActiveBrand(null);
+                  }}
+                  className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium flex items-center gap-1"
+                >
+                  <X className="h-4 w-4" />
+                  Limpiar todos los filtros
+                </button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Models Grid */}
       {brands.length === 0 ? (
         <EmptyState
@@ -404,11 +503,11 @@ export function ModelManager() {
           title="Primero agrega marcas"
           description="Necesitas agregar al menos una marca antes de crear modelos."
         />
-      ) : sortedModels.length === 0 && searchTerm ? (
+      ) : filteredAndSortedModels.length === 0 && (searchTerm || activeCategory || activeBrand) ? (
         <EmptyState
           icon={Search}
           title="Sin resultados"
-          description="No encontramos modelos que coincidan con tu búsqueda."
+          description="No encontramos modelos que coincidan con tu búsqueda o filtros."
         />
       ) : models.length === 0 ? (
         <EmptyState
@@ -418,7 +517,7 @@ export function ModelManager() {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sortedModels.map((model) => {
+          {filteredAndSortedModels.map((model) => {
             const brand = brands.find((b) => b.id === model.brandId);
             return (
               <Card 
