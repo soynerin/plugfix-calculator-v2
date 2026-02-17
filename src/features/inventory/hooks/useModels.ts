@@ -55,6 +55,14 @@ export function useModels(brandId?: string) {
     }
   });
 
+  // Bulk import de modelos
+  const bulkAddModels = useMutation({
+    mutationFn: (models: Omit<RepairModel, 'id'>[]) => db.bulkAddModels(models),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['models'] });
+    }
+  });
+
   // Buscar modelos
   const searchModels = async (query: string) => {
     return db.searchModels(query);
@@ -67,6 +75,7 @@ export function useModels(brandId?: string) {
     addModel: addModel.mutate,
     updateModel: updateModel.mutate,
     deleteModel: deleteModel.mutate,
+    bulkAddModels: bulkAddModels.mutateAsync,
     searchModels
   };
 }

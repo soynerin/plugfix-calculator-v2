@@ -4,12 +4,14 @@ import { useConfirm } from '@/shared/hooks/useConfirm';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
-import { Plus, Trash2, Tag } from 'lucide-react';
+import { BulkImportModal, BulkImportResult } from '@/shared/components/BulkImportModal';
+import { Plus, Trash2, Tag, Upload } from 'lucide-react';
 
 export function BrandManager() {
-  const { brands, isLoading, addBrand, deleteBrand } = useBrands();
+  const { brands, isLoading, addBrand, deleteBrand, bulkAddBrands } = useBrands();
   const { confirm } = useConfirm();
   const [newBrandName, setNewBrandName] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const handleAddBrand = () => {
     if (newBrandName.trim()) {
@@ -27,6 +29,20 @@ export function BrandManager() {
     });
   };
 
+  const handleBulkImport = async (data: any[]): Promise<BulkImportResult> => {
+    // Validar estructura de los datos
+    const validBrands = data
+      .filter((item) => item && typeof item === 'object' && 'nombre' in item)
+      .map((item) => ({ name: item.nombre }));
+
+    if (validBrands.length === 0) {
+      throw new Error('No se encontraron marcas válidas en el JSON. Cada elemento debe tener la propiedad "nombre".');
+    }
+
+    // Realizar bulk import
+    return await bulkAddBrands(validBrands);
+  };
+
   // Función para obtener la inicial de una marca
   const getInitial = (name: string) => {
     return name.charAt(0).toUpperCase();
@@ -39,8 +55,20 @@ export function BrandManager() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Marcas</CardTitle>
-        <CardDescription>Gestiona las marcas de dispositivos</CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Marcas</CardTitle>
+            <CardDescription>Gestiona las marcas de dispositivos</CardDescription>
+          </div>
+          <Button
+            onClick={() => setShowImportModal(true)}
+            variant="outline"
+            className="gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Importar JSON
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Add Form */}
@@ -107,6 +135,16 @@ export function BrandManager() {
           </div>
         )}
       </CardContent>
+
+      <BulkImportModal
+        open={showImportModal}
+        onOpenChange={setShowImportModal}
+        title="Importar Marcas desde JSON"
+        description="Pega un array de objetos JSON con las marcas que deseas importar. Las marcas existentes serán omitidas."
+        placeholder='Ejemplo: [{"nombre": "Samsung"}, {"nombre": "Apple"}]'
+        exampleJson='[{"nombre": "Samsung"}, {"nombre": "Apple"}]'
+        onImport={handleBulkImport}
+      />
     </Card>
   );
 }

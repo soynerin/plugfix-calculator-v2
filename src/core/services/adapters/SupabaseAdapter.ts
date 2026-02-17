@@ -1,4 +1,4 @@
-import type { IDatabaseService, HistoryFilters } from '../interfaces/IDatabaseService';
+import type { IDatabaseService, HistoryFilters, BulkImportResult } from '../interfaces/IDatabaseService';
 import type { Brand, RepairModel, Service, PriceConfig, RepairHistory } from '@/core/domain/models';
 import { getSupabaseClient } from '@/lib/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -113,6 +113,46 @@ export class SupabaseAdapter implements IDatabaseService {
     if (error) throw new Error(`Failed to delete brand: ${error.message}`);
   }
 
+  async bulkAddBrands(brands: Omit<Brand, 'id'>[]): Promise<BulkImportResult> {
+    const result: BulkImportResult = {
+      totalProcessed: brands.length,
+      added: 0,
+      skipped: 0,
+      errors: 0
+    };
+
+    for (const brand of brands) {
+      try {
+        // Verificar si ya existe
+        const { data: existing } = await this.client
+          .from('brands')
+          .select('id')
+          .ilike('name', brand.name.trim())
+          .single();
+
+        if (existing) {
+          result.skipped++;
+          continue;
+        }
+
+        // Insertar
+        const { error } = await this.client
+          .from('brands')
+          .insert({ name: brand.name.trim() });
+
+        if (error) {
+          result.errors++;
+        } else {
+          result.added++;
+        }
+      } catch (error) {
+        result.errors++;
+      }
+    }
+
+    return result;
+  }
+
   // ============================================
   // MODELS
   // ============================================
@@ -199,6 +239,58 @@ export class SupabaseAdapter implements IDatabaseService {
       .eq('id', id);
 
     if (error) throw new Error(`Failed to delete model: ${error.message}`);
+  }
+
+  async bulkAddModels(models: Omit<RepairModel, 'id'>[]): Promise<BulkImportResult> {
+    const result: BulkImportResult = {
+      totalProcessed: models.length,
+      added: 0,
+      skipped: 0,
+      errors: 0
+    };
+
+    for (const model of models) {
+      try {
+        // Validar que tenga brandId
+        if (!model.brandId) {
+          result.errors++;
+          continue;
+        }
+
+        // Verificar si ya existe (mismo nombre y marca)
+        const { data: existing } = await this.client
+          .from('models')
+          .select('id')
+          .eq('brand_id', model.brandId)
+          .ilike('name', model.name.trim())
+          .single();
+
+        if (existing) {
+          result.skipped++;
+          continue;
+        }
+
+        // Insertar
+        const { error } = await this.client
+          .from('models')
+          .insert({
+            brand_id: model.brandId,
+            name: model.name.trim(),
+            risk_factor: model.riskFactor || 1.0,
+            category: model.category || 'Gama Media'
+          });
+
+        if (error) {
+          result.errors++;
+        } else {
+          result.added++;
+        }
+      } catch (error) {
+        result.errors++;
+      }
+    }
+
+    return result;
   }
 
   // ============================================

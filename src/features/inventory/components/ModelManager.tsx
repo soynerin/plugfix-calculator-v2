@@ -14,13 +14,15 @@ import {
   SelectValue,
 } from '@/shared/ui/select';
 import { EmptyState } from '@/shared/ui/empty-state';
-import { Database, Search, Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { BulkImportModal, BulkImportResult } from '@/shared/components/BulkImportModal';
+import { Database, Search, Plus, Trash2, AlertTriangle, Upload } from 'lucide-react';
 
 export function ModelManager() {
   const { brands } = useBrands();
-  const { models, addModel, deleteModel } = useModels();
+  const { models, addModel, deleteModel, bulkAddModels } = useModels();
   const { confirm } = useConfirm();
   const [searchTerm, setSearchTerm] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     brandId: '',
@@ -64,6 +66,38 @@ export function ModelManager() {
     });
   };
 
+  const handleBulkImport = async (data: any[]): Promise<BulkImportResult> => {
+    // Validar estructura de los datos
+    const validModels = data
+      .filter((item) => {
+        if (!item || typeof item !== 'object') return false;
+        if (!item.nombre || !item.marca) return false;
+        return true;
+      })
+      .map((item) => {
+        // Buscar la marca por nombre
+        const brand = brands.find((b) => b.name.toLowerCase() === item.marca.toLowerCase());
+        
+        if (!brand) {
+          throw new Error(`No se encontró la marca "${item.marca}". Asegúrate de que todas las marcas existan antes de importar modelos.`);
+        }
+
+        return {
+          name: item.nombre,
+          brandId: brand.id,
+          riskFactor: item.factorRiesgo || item.riskFactor || 1.0,
+          category: (item.categoria || item.category || 'Gama Media') as 'Gama Baja' | 'Gama Media' | 'Gama Alta' | 'Premium',
+        };
+      });
+
+    if (validModels.length === 0) {
+      throw new Error('No se encontraron modelos válidos en el JSON. Cada elemento debe tener "nombre" y "marca".');
+    }
+
+    // Realizar bulk import
+    return await bulkAddModels(validModels);
+  };
+
   // Helper para obtener estilos de badge de riesgo
   const getRiskBadgeStyles = (riskFactor: number) => {
     if (riskFactor > 1) {
@@ -95,8 +129,20 @@ export function ModelManager() {
       {/* Form Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Nuevo Modelo</CardTitle>
-          <CardDescription>Agrega un nuevo modelo de dispositivo</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Nuevo Modelo</CardTitle>
+              <CardDescription>Agrega un nuevo modelo de dispositivo</CardDescription>
+            </div>
+            <Button
+              onClick={() => setShowImportModal(true)}
+              variant="outline"
+              className="gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Importar JSON
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -255,6 +301,16 @@ export function ModelManager() {
           })}
         </div>
       )}
+
+      <BulkImportModal
+        open={showImportModal}
+        onOpenChange={setShowImportModal}
+        title="Importar Modelos desde JSON"
+        description="Pega un array de objetos JSON con los modelos que deseas importar. Los modelos existentes (mismo nombre y marca) serán omitidos."
+        placeholder='[{"nombre": "Galaxy S23", "marca": "Samsung", "factorRiesgo": 1.2, "categoria": "Gama Alta"}]'
+        exampleJson='[{"nombre": "Galaxy S23", "marca": "Samsung", "factorRiesgo": 1.2, "categoria": "Gama Alta"}]'
+        onImport={handleBulkImport}
+      />
     </div>
   );
 }

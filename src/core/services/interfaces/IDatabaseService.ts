@@ -14,6 +14,7 @@ export interface IDatabaseService {
   addBrand(brand: Omit<Brand, 'id'>): Promise<Brand>;
   updateBrand(id: string, data: Partial<Brand>): Promise<Brand>;
   deleteBrand(id: string): Promise<void>;
+  bulkAddBrands(brands: Omit<Brand, 'id'>[]): Promise<BulkImportResult>;
 
   // ============================================
   // MODELS
@@ -24,6 +25,7 @@ export interface IDatabaseService {
   addModel(model: Omit<RepairModel, 'id'>): Promise<RepairModel>;
   updateModel(id: string, data: Partial<RepairModel>): Promise<RepairModel>;
   deleteModel(id: string): Promise<void>;
+  bulkAddModels(models: Omit<RepairModel, 'id'>[]): Promise<BulkImportResult>;
 
   // ============================================
   // SERVICES
@@ -66,4 +68,11 @@ export interface HistoryFilters {
   model?: string;
   dateFrom?: Date;
   dateTo?: Date;
+}
+
+export interface BulkImportResult {
+  totalProcessed: number;
+  added: number;
+  skipped: number;
+  errors: number;
 }

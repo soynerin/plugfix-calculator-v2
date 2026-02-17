@@ -53,6 +53,14 @@ export function useBrands() {
     }
   });
 
+  // Bulk import de marcas
+  const bulkAddBrands = useMutation({
+    mutationFn: (brands: Omit<Brand, 'id'>[]) => db.bulkAddBrands(brands),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['brands'] });
+    }
+  });
+
   // Buscar marcas
   const searchBrands = async (query: string) => {
     return db.searchBrands(query);
@@ -64,6 +72,7 @@ export function useBrands() {
     error,
     addBrand: addBrand.mutate,
     deleteBrand: deleteBrand.mutate,
+    bulkAddBrands: bulkAddBrands.mutateAsync,
     searchBrands
   };
 }
