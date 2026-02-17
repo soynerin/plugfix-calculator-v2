@@ -29,7 +29,7 @@ export function MobileNavBar({ activeTab, onTabChange }: MobileNavBarProps) {
               className={cn(
                 "flex flex-col items-center justify-center gap-1 transition-colors",
                 isActive 
-                  ? "text-indigo-600 dark:text-indigo-400" 
+                  ? "text-primary-500 dark:text-primary-400" 
                   : "text-gray-500 dark:text-gray-400"
               )}
             >

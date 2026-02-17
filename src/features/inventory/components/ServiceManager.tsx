@@ -99,7 +99,7 @@ export function ServiceManager() {
             <Button 
               onClick={handleAddService}
               disabled={!isFormValid}
-              className="w-full gap-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full gap-2 bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="h-4 w-4" />
               Agregar Servicio
@@ -125,8 +125,8 @@ export function ServiceManager() {
               <CardContent className="p-5">
                 <div className="flex items-start gap-4">
                   {/* Icon Container */}
-                  <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
-                    <Wrench className="h-6 w-6 text-indigo-600 dark:text-indigo-400" strokeWidth={2} />
+                  <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary-50 dark:bg-primary-500/10 flex items-center justify-center">
+                    <Wrench className="h-6 w-6 text-primary-600 dark:text-primary-400" strokeWidth={2} />
                   </div>
 
                   {/* Content */}

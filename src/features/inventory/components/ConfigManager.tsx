@@ -106,7 +106,7 @@ export function ConfigManager() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-indigo-600" />
+            <TrendingUp className="h-5 w-5 text-primary-600" />
             Configuración de Precios
           </CardTitle>
           <CardDescription>Variables económicas del negocio</CardDescription>
@@ -180,7 +180,7 @@ export function ConfigManager() {
                   size="sm"
                   onClick={handleUpdateDolarBlue}
                   disabled={isDolarBlueLoading}
-                  className="h-7 text-xs gap-1.5 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="h-7 text-xs gap-1.5 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
                 >
                   <RefreshCw className={`h-3.5 w-3.5 ${isDolarBlueLoading ? 'animate-spin' : ''}`} />
                   {isDolarBlueLoading ? 'Actualizando...' : 'Actualizar con Dolar Blue'}
@@ -235,10 +235,10 @@ export function ConfigManager() {
       </Card>
 
       {/* Columna Derecha: Simulador de Impacto */}
-      <Card className="shadow-lg bg-gradient-to-br from-white to-indigo-50/30 dark:from-card dark:to-indigo-950/10">
+      <Card className="shadow-lg bg-gradient-to-br from-white to-primary-50/30 dark:from-card dark:to-primary-950/10">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-indigo-600" />
+            <Sparkles className="h-5 w-5 text-primary-600" />
             Simulador de Impacto
           </CardTitle>
           <CardDescription>
@@ -263,7 +263,7 @@ export function ConfigManager() {
               </div>
 
               <div className="flex items-center justify-center">
-                <div className="text-2xl text-indigo-600 font-bold">+</div>
+                <div className="text-2xl text-primary-600 font-bold">+</div>
               </div>
 
               <div className="flex items-center justify-between py-3 px-4 bg-white dark:bg-card rounded-lg shadow-sm">
@@ -276,7 +276,7 @@ export function ConfigManager() {
               </div>
 
               <div className="flex items-center justify-center">
-                <div className="text-2xl text-indigo-600 font-bold">+</div>
+                <div className="text-2xl text-primary-600 font-bold">+</div>
               </div>
 
               <div className="flex items-center justify-between py-3 px-4 bg-white dark:bg-card rounded-lg shadow-sm">
@@ -294,7 +294,7 @@ export function ConfigManager() {
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-              className="text-center py-8 px-4 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl shadow-inner"
+              className="text-center py-8 px-4 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950/30 dark:to-primary-900/30 rounded-xl shadow-inner"
             >
               <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2 font-semibold">
                 Precio al Cliente
@@ -304,7 +304,7 @@ export function ConfigManager() {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="text-5xl font-bold text-indigo-600 dark:text-indigo-400 tabular-nums"
+                className="text-5xl font-bold text-primary-600 dark:text-primary-400 tabular-nums"
               >
                 <AnimatedNumber value={simulation.finalPrice} currency="ARS" />
               </motion.p>

@@ -55,7 +55,7 @@ export function BrandManager() {
           <Button 
             onClick={handleAddBrand}
             disabled={isInputEmpty}
-            className="gap-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="gap-2 bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="h-4 w-4" />
             Agregar
@@ -82,8 +82,8 @@ export function BrandManager() {
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   {/* Avatar Circle */}
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center">
-                    <span className="text-base font-bold text-slate-700 dark:text-slate-200">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
+                    <span className="text-base font-bold text-gray-700 dark:text-gray-200">
                       {getInitial(brand.name)}
                     </span>
                   </div>

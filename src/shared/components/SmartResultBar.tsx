@@ -14,7 +14,7 @@ export function SmartResultBar({ totalARS, onViewDetails }: SmartResultBarProps)
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
       transition={{ type: "spring", damping: 25, stiffness: 200 }}
-      className="md:hidden fixed bottom-16 left-0 right-0 z-40 bg-indigo-600 dark:bg-indigo-700 text-white shadow-2xl"
+      className="md:hidden fixed bottom-16 left-0 right-0 z-40 bg-primary-500 dark:bg-primary-600 text-white shadow-2xl"
     >
       <div className="px-4 py-3 flex items-center justify-between">
         <div className="flex-1">

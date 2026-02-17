@@ -80,7 +80,7 @@ export function ModelManager() {
       case 'Gama Alta':
         return 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400';
       case 'Gama Media':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+        return 'bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-400';
       case 'Gama Baja':
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
       default:
@@ -167,7 +167,7 @@ export function ModelManager() {
               <Button 
                 onClick={handleAddModel} 
                 disabled={!isFormValid}
-                className="w-full gap-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full gap-2 bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="h-4 w-4" />
                 Agregar Modelo

@@ -179,13 +179,13 @@ export function DatabaseDiagnostic() {
             </div>
 
             {/* Instructions */}
-            <div className="p-4 rounded-lg border border-blue-500 bg-blue-50 dark:bg-blue-950">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+            <div className="p-4 rounded-lg border border-primary-500 bg-primary-50 dark:bg-primary-900/30">
+              <p className="text-sm font-medium text-primary-800 dark:text-primary-100 mb-2">
                 💡 Configuración
               </p>
-              <p className="text-xs text-blue-800 dark:text-blue-200">
+              <p className="text-xs text-primary-700 dark:text-primary-200">
                 Las credenciales de Supabase se configuran en el archivo{' '}
-                <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.env.local</code>
+                <code className="bg-primary-100 dark:bg-primary-900 px-1 rounded">.env.local</code>
               </p>
             </div>
           </div>

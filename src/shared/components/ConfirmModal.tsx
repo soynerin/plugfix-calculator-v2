@@ -65,9 +65,9 @@ export function ConfirmModal({
     },
     info: {
       icon: Info,
-      iconBg: 'bg-blue-100 dark:bg-blue-950',
-      iconColor: 'text-blue-600 dark:text-blue-400',
-      buttonBg: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500',
+      iconBg: 'bg-primary-100 dark:bg-primary-900/30',
+      iconColor: 'text-primary-600 dark:text-primary-400',
+      buttonBg: 'bg-primary-500 hover:bg-primary-600 focus:ring-primary-500',
       buttonText: 'Confirmar',
     },
   };
