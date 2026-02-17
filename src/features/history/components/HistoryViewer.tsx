@@ -7,6 +7,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Trash2, Download, Search, Filter, ClipboardList } from 'lucide-react';
+import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { EmptyState } from '@/shared/ui/empty-state';
 import {
   Select,
@@ -48,6 +49,9 @@ export function HistoryViewer() {
   
   // Estado para animación de fade-out
   const [fadingIds, setFadingIds] = useState<Set<string>>(new Set());
+  
+  // Estado para el modal de confirmación
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   const { brands } = useBrands();
   const { models } = useModels();
@@ -104,15 +108,19 @@ export function HistoryViewer() {
   
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('¿Eliminar esta entrada del historial?')) {
+    setItemToDelete(id);
+  };
+  
+  const confirmDelete = () => {
+    if (itemToDelete) {
       // Añadir fade-out
-      setFadingIds(prev => new Set(prev).add(id));
+      setFadingIds(prev => new Set(prev).add(itemToDelete));
       // Eliminar después de la animación
       setTimeout(() => {
-        deleteHistory(id);
+        deleteHistory(itemToDelete);
         setFadingIds(prev => {
           const next = new Set(prev);
-          next.delete(id);
+          next.delete(itemToDelete);
           return next;
         });
       }, 300);
@@ -446,6 +454,15 @@ export function HistoryViewer() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={confirmDelete}
+        title="¿Eliminar reparación?"
+        description="Esta acción no se puede deshacer. El registro se borrará permanentemente de la base de datos."
+      />
     </div>
   );
 }
