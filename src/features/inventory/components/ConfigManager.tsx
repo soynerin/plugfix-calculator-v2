@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useConfig } from '@/features/inventory/hooks/useConfig';
+import { useDolarBlue } from '@/features/inventory/hooks/useDolarBlue';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
-import { formatARS } from '@/shared/utils/formatters';
-import { DollarSign, TrendingUp, Percent, Sparkles } from 'lucide-react';
+import { DollarSign, TrendingUp, Percent, Sparkles, RefreshCw } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { motion } from 'framer-motion';
@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 export function ConfigManager() {
   const { config, updateConfig, isLoading } = useConfig();
   const { toast } = useToast();
+  const { isLoading: isDolarBlueLoading, refetch: refetchDolarBlue } = useDolarBlue();
   const [formData, setFormData] = useState({
     hourlyRate: config?.hourlyRate.toString() || '13000',
     margin: config?.margin.toString() || '40',
@@ -41,6 +42,26 @@ export function ConfigManager() {
       toast({
         title: 'Valores restaurados',
         description: 'Se han restaurado los últimos valores guardados',
+      });
+    }
+  };
+
+  const handleUpdateDolarBlue = async () => {
+    try {
+      const result = await refetchDolarBlue();
+      if (result.data?.venta) {
+        const roundedVenta = Math.round(result.data.venta);
+        setFormData({ ...formData, usdRate: roundedVenta.toString() });
+        toast({
+          title: '💰 Cotización actualizada',
+          description: `Dolar Blue: $${roundedVenta.toLocaleString('es-AR')} (Fuente: DolarApi)`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: '❌ Error de conexión',
+        description: 'No se pudo conectar con la API de cotizaciones',
+        variant: 'destructive',
       });
     }
   };
@@ -149,9 +170,22 @@ export function ConfigManager() {
 
             {/* Tipo de Cambio (Input Group Visual) */}
             <div>
-              <Label htmlFor="usdRate" className="text-sm font-medium">
-                Tipo de Cambio (Dólar)
-              </Label>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label htmlFor="usdRate" className="text-sm font-medium">
+                  Tipo de Cambio (Dólar)
+                </Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleUpdateDolarBlue}
+                  disabled={isDolarBlueLoading}
+                  className="h-7 text-xs gap-1.5 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${isDolarBlueLoading ? 'animate-spin' : ''}`} />
+                  {isDolarBlueLoading ? 'Actualizando...' : 'Actualizar con Dolar Blue'}
+                </Button>
+              </div>
               <div className="flex items-center mt-1.5 rounded-md overflow-hidden border border-input focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 transition-all">
                 {/* Prefijo Estático: "1 USD =" */}
                 <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-800 border-r border-input">
