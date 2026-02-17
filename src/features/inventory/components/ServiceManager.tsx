@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useServices } from '../hooks/useServices';
+import { useConfirm } from '@/shared/hooks/useConfirm';
 import type { Service } from '@/core/domain/models';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -10,6 +11,7 @@ import { EmptyState } from '@/shared/ui/empty-state';
 
 export function ServiceManager() {
   const { services, addService, deleteService } = useServices();
+  const { confirm } = useConfirm();
   const [formData, setFormData] = useState({
     name: '',
     hours: '1',
@@ -28,6 +30,15 @@ export function ServiceManager() {
       addService(serviceData);
       setFormData({ name: '', hours: '1', description: '' });
     }
+  };
+
+  const handleDeleteService = (id: string, name: string) => {
+    confirm({
+      title: 'Eliminar Servicio',
+      message: `¿Estás seguro de que deseas eliminar el servicio "${name}"?`,
+      type: 'danger',
+      onConfirm: () => deleteService(id),
+    });
   };
 
   const isFormValid = formData.name.trim() && formData.hours && parseFloat(formData.hours) > 0;
@@ -141,7 +152,7 @@ export function ServiceManager() {
 
                   {/* Delete Button */}
                   <button
-                    onClick={() => deleteService(service.id)}
+                    onClick={() => handleDeleteService(service.id, service.name)}
                     className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors duration-200"
                     aria-label={`Eliminar ${service.name}`}
                   >

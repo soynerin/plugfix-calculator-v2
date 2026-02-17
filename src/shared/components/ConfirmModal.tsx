@@ -1,4 +1,4 @@
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, Info, X } from 'lucide-react';
 import { useEffect } from 'react';
 
 interface ConfirmModalProps {
@@ -7,6 +7,7 @@ interface ConfirmModalProps {
   onConfirm: () => void;
   title: string;
   description: string;
+  type?: 'danger' | 'info';
 }
 
 export function ConfirmModal({
@@ -15,6 +16,7 @@ export function ConfirmModal({
   onConfirm,
   title,
   description,
+  type = 'danger',
 }: ConfirmModalProps) {
   // Bloquear scroll cuando el modal está abierto
   useEffect(() => {
@@ -51,6 +53,27 @@ export function ConfirmModal({
     onConfirm();
     onClose();
   };
+
+  // Configuración basada en el tipo
+  const config = {
+    danger: {
+      icon: AlertTriangle,
+      iconBg: 'bg-red-100 dark:bg-red-950',
+      iconColor: 'text-red-600 dark:text-red-400',
+      buttonBg: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
+      buttonText: 'Eliminar',
+    },
+    info: {
+      icon: Info,
+      iconBg: 'bg-blue-100 dark:bg-blue-950',
+      iconColor: 'text-blue-600 dark:text-blue-400',
+      buttonBg: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500',
+      buttonText: 'Confirmar',
+    },
+  };
+
+  const currentConfig = config[type];
+  const Icon = currentConfig.icon;
 
   return (
     <>
@@ -104,8 +127,8 @@ export function ConfirmModal({
           {/* Contenido del Modal */}
           <div className="flex flex-col items-center text-center space-y-4">
             {/* Icono de Advertencia */}
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-950">
-              <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
+            <div className={`flex items-center justify-center w-16 h-16 rounded-full ${currentConfig.iconBg}`}>
+              <Icon className={`h-8 w-8 ${currentConfig.iconColor}`} />
             </div>
 
             {/* Título */}
@@ -147,24 +170,23 @@ export function ConfirmModal({
             </button>
             <button
               onClick={handleConfirm}
-              className="
+              className={`
                 flex-1
                 px-4 
                 py-2.5 
                 rounded-lg 
-                bg-red-600 
-                hover:bg-red-700 
+                ${currentConfig.buttonBg}
                 text-white 
                 font-medium
                 transition-colors
                 focus:outline-none
                 focus:ring-2
-                focus:ring-red-500
+                ${currentConfig.buttonBg}
                 focus:ring-offset-2
                 dark:focus:ring-offset-gray-900
-              "
+              `}
             >
-              Eliminar
+              {currentConfig.buttonText}
             </button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useBrands } from '../hooks/useBrands';
+import { useConfirm } from '@/shared/hooks/useConfirm';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
@@ -7,6 +8,7 @@ import { Plus, Trash2, Tag } from 'lucide-react';
 
 export function BrandManager() {
   const { brands, isLoading, addBrand, deleteBrand } = useBrands();
+  const { confirm } = useConfirm();
   const [newBrandName, setNewBrandName] = useState('');
 
   const handleAddBrand = () => {
@@ -14,6 +16,15 @@ export function BrandManager() {
       addBrand({ name: newBrandName.trim() });
       setNewBrandName('');
     }
+  };
+
+  const handleDeleteBrand = (id: string, name: string) => {
+    confirm({
+      title: 'Eliminar Marca',
+      message: `¿Estás seguro de que deseas eliminar la marca "${name}"? Se perderán los modelos asociados.`,
+      type: 'danger',
+      onConfirm: () => deleteBrand(id),
+    });
   };
 
   // Función para obtener la inicial de una marca
@@ -85,7 +96,7 @@ export function BrandManager() {
 
                 {/* Delete Button */}
                 <button
-                  onClick={() => deleteBrand(brand.id)}
+                  onClick={() => handleDeleteBrand(brand.id, brand.name)}
                   className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors duration-200"
                   aria-label={`Eliminar ${brand.name}`}
                 >

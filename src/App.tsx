@@ -13,6 +13,7 @@ import { HistoryViewer } from '@/features/history/components/HistoryViewer';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import { Toaster } from '@/shared/ui/toaster';
 import { pageVariants, pageTransition } from '@/shared/utils/animations';
+import { ConfirmProvider } from '@/shared/contexts/ConfirmContext';
 
 // Crear instancia de QueryClient
 const queryClient = new QueryClient({
@@ -69,7 +70,8 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-background">
+      <ConfirmProvider>
+        <div className="min-h-screen bg-background">
         {/* Header */}
         <header className="border-b bg-card">
           <div className="container mx-auto px-4 py-6 max-w-7xl">
@@ -208,6 +210,7 @@ function App() {
         </footer>
       </div>
       <Toaster />
+      </ConfirmProvider>
     </QueryClientProvider>
   );
 }

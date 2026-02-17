@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useModels } from '../hooks/useModels';
 import { useBrands } from '../hooks/useBrands';
+import { useConfirm } from '@/shared/hooks/useConfirm';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -18,6 +19,7 @@ import { Database, Search, Plus, Trash2, AlertTriangle } from 'lucide-react';
 export function ModelManager() {
   const { brands } = useBrands();
   const { models, addModel, deleteModel } = useModels();
+  const { confirm } = useConfirm();
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     name: '',
@@ -51,6 +53,15 @@ export function ModelManager() {
       });
       setFormData({ name: '', brandId: '', riskFactor: '1.0', category: 'Gama Media' });
     }
+  };
+
+  const handleDeleteModel = (id: string, name: string, brandName: string) => {
+    confirm({
+      title: 'Eliminar Modelo',
+      message: `¿Estás seguro de que deseas eliminar el modelo "${name}" de ${brandName}?`,
+      type: 'danger',
+      onConfirm: () => deleteModel(id),
+    });
   };
 
   // Helper para obtener estilos de badge de riesgo
@@ -212,7 +223,7 @@ export function ModelManager() {
                       {model.name}
                     </h3>
                     <button
-                      onClick={() => deleteModel(model.id)}
+                      onClick={() => handleDeleteModel(model.id, model.name, brand?.name || 'Marca desconocida')}
                       className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors duration-200"
                       aria-label={`Eliminar ${model.name}`}
                     >

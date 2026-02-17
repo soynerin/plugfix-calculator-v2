@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useHistory } from '../hooks/useHistory';
 import { useBrands } from '@/features/inventory/hooks/useBrands';
 import { useModels } from '@/features/inventory/hooks/useModels';
+import { useConfirm } from '@/shared/hooks/useConfirm';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Trash2, Download, Search, Filter, ClipboardList } from 'lucide-react';
-import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { EmptyState } from '@/shared/ui/empty-state';
 import {
   Select,
@@ -49,13 +49,11 @@ export function HistoryViewer() {
   
   // Estado para animación de fade-out
   const [fadingIds, setFadingIds] = useState<Set<string>>(new Set());
-  
-  // Estado para el modal de confirmación
-  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   const { brands } = useBrands();
   const { models } = useModels();
   const { history, isLoading, deleteHistory, exportHistory } = useHistory(appliedFilters);
+  const { confirm } = useConfirm();
   const [selectedEntry, setSelectedEntry] = useState<RepairHistory | null>(null);
 
   // Filtrar modelos por marca seleccionada
@@ -106,25 +104,27 @@ export function HistoryViewer() {
     exportHistory(format);
   };
   
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = (id: string, clientName: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setItemToDelete(id);
-  };
-  
-  const confirmDelete = () => {
-    if (itemToDelete) {
-      // Añadir fade-out
-      setFadingIds(prev => new Set(prev).add(itemToDelete));
-      // Eliminar después de la animación
-      setTimeout(() => {
-        deleteHistory(itemToDelete);
-        setFadingIds(prev => {
-          const next = new Set(prev);
-          next.delete(itemToDelete);
-          return next;
-        });
-      }, 300);
-    }
+    
+    confirm({
+      title: '¿Eliminar reparación?',
+      message: `¿Estás seguro de que deseas eliminar la reparación de ${clientName}? Esta acción no se puede deshacer.`,
+      type: 'danger',
+      onConfirm: () => {
+        // Añadir fade-out
+        setFadingIds(prev => new Set(prev).add(id));
+        // Eliminar después de la animación
+        setTimeout(() => {
+          deleteHistory(id);
+          setFadingIds(prev => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+        }, 300);
+      },
+    });
   };
 
   const formatDate = (date: Date) => {
@@ -315,7 +315,7 @@ export function HistoryViewer() {
                           </TableCell>
                           <TableCell className="text-center py-4">
                             <button
-                              onClick={(e) => handleDelete(entry.id, e)}
+                              onClick={(e) => handleDelete(entry.id, entry.clientName || 'este cliente', e)}
                               className="
                                 inline-flex items-center justify-center
                                 h-8 w-8 
@@ -454,15 +454,6 @@ export function HistoryViewer() {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Confirmation Modal */}
-      <ConfirmModal
-        isOpen={!!itemToDelete}
-        onClose={() => setItemToDelete(null)}
-        onConfirm={confirmDelete}
-        title="¿Eliminar reparación?"
-        description="Esta acción no se puede deshacer. El registro se borrará permanentemente de la base de datos."
-      />
     </div>
   );
 }
