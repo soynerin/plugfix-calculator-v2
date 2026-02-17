@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useModels } from '../hooks/useModels';
 import { useBrands } from '../hooks/useBrands';
 import { useConfirm } from '@/shared/hooks/useConfirm';
+import { RepairModel } from '@/core/domain/models/RepairModel';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -50,11 +51,17 @@ export function ModelManager() {
     category: 'Gama Baja' | 'Gama Media' | 'Gama Alta' | 'Premium';
     releaseYear: string;
   } | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    brandId: string;
+    riskFactor: string;
+    category: 'Gama Baja' | 'Gama Media' | 'Gama Alta' | 'Premium';
+    releaseYear: string;
+  }>({
     name: '',
     brandId: '',
     riskFactor: '1.0',
-    category: 'Gama Media' as const,
+    category: 'Gama Media',
     releaseYear: '',
   });
 
@@ -111,13 +118,18 @@ export function ModelManager() {
 
   const handleAddModel = () => {
     if (formData.name.trim() && formData.brandId) {
-      addModel({
+      const modelData: Omit<RepairModel, 'id'> = {
         name: formData.name.trim(),
         brandId: formData.brandId,
         riskFactor: parseFloat(formData.riskFactor),
         category: formData.category,
-        releaseYear: formData.releaseYear ? parseInt(formData.releaseYear) : undefined,
-      });
+      };
+      
+      if (formData.releaseYear) {
+        modelData.releaseYear = parseInt(formData.releaseYear);
+      }
+      
+      addModel(modelData);
       setFormData({ name: '', brandId: '', riskFactor: '1.0', category: 'Gama Media', releaseYear: '' });
     }
   };
@@ -136,15 +148,20 @@ export function ModelManager() {
 
   const handleUpdateModel = () => {
     if (selectedModel && selectedModel.name.trim() && selectedModel.brandId) {
+      const updateData: Partial<RepairModel> = {
+        name: selectedModel.name.trim(),
+        brandId: selectedModel.brandId,
+        riskFactor: parseFloat(selectedModel.riskFactor),
+        category: selectedModel.category,
+      };
+      
+      if (selectedModel.releaseYear) {
+        updateData.releaseYear = parseInt(selectedModel.releaseYear);
+      }
+      
       updateModel({
         id: selectedModel.id,
-        data: {
-          name: selectedModel.name.trim(),
-          brandId: selectedModel.brandId,
-          riskFactor: parseFloat(selectedModel.riskFactor),
-          category: selectedModel.category,
-          releaseYear: selectedModel.releaseYear ? parseInt(selectedModel.releaseYear) : undefined,
-        },
+        data: updateData,
       });
       setIsEditModalOpen(false);
       setSelectedModel(null);
@@ -176,13 +193,19 @@ export function ModelManager() {
           throw new Error(`No se encontró la marca "${item.marca}". Asegúrate de que todas las marcas existan antes de importar modelos.`);
         }
 
-        return {
+        const modelData: Omit<RepairModel, 'id'> = {
           name: item.nombre,
           brandId: brand.id,
           riskFactor: item.factorRiesgo || item.riskFactor || 1.0,
           category: (item.categoria || item.category || 'Gama Media') as 'Gama Baja' | 'Gama Media' | 'Gama Alta' | 'Premium',
-          releaseYear: item.añoLanzamiento || item.releaseYear || undefined,
         };
+        
+        const releaseYear = item.añoLanzamiento || item.releaseYear;
+        if (releaseYear) {
+          modelData.releaseYear = releaseYear;
+        }
+        
+        return modelData;
       });
 
     if (validModels.length === 0) {
