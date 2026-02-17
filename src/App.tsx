@@ -171,52 +171,39 @@ function App() {
                 animate="animate"
                 transition={pageTransition}
               >
-                <div className="grid gap-6 lg:grid-cols-2">
-                  <ConfigManager />
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Estado del Sistema</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">✅</span>
-                          <span>Base de Datos: Dexie (IndexedDB)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">✅</span>
-                          <span>Cache: TanStack Query</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">✅</span>
-                          <span>Arquitectura: Clean Architecture</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">✅</span>
-                          <span>Patrón: Repository + Adapter</span>
-                        </div>
-                      </div>
-                      <div className="pt-4 border-t text-xs text-muted-foreground space-y-1">
-                        <p><strong>Stack Tecnológico:</strong></p>
-                        <p>• React 18.3 + TypeScript 5.6</p>
-                        <p>• Vite 6 + Tailwind CSS 3.4</p>
-                        <p>• shadcn/ui + Radix UI</p>
-                        <p>• Dexie 4 + TanStack Query 5</p>
-                        <p>• Zustand 5 para estado global</p>
-                        <p>• Framer Motion para animaciones</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                <ConfigManager />
               </motion.div>
             </TabsContent>
           </Tabs>
         </main>
 
         {/* Footer */}
-        <footer className="border-t mt-12">
-          <div className="container mx-auto px-4 py-4 text-center text-xs text-muted-foreground/60 max-w-7xl">
-            <p>PlugFix Calculator v2.0</p>
+        <footer className="border-t mt-12 bg-gray-50/50 dark:bg-gray-900/20">
+          <div className="container mx-auto px-4 py-6 max-w-7xl">
+            <div className="flex flex-col items-center gap-3">
+              {/* Versión Principal */}
+              <p className="text-xs font-medium text-muted-foreground/80">
+                PlugFix Calculator v2.0
+              </p>
+              
+              {/* Información Técnica Discreta */}
+              <div className="text-[10px] text-muted-foreground/50 text-center space-y-1">
+                <p className="flex items-center justify-center gap-2 flex-wrap">
+                  <span>✅ Dexie (IndexedDB)</span>
+                  <span>•</span>
+                  <span>✅ TanStack Query</span>
+                  <span>•</span>
+                  <span>✅ Clean Architecture</span>
+                </p>
+                <p className="flex items-center justify-center gap-1.5 flex-wrap">
+                  <span>React 18.3 + TypeScript 5.6</span>
+                  <span>•</span>
+                  <span>Vite 6 + Tailwind CSS 3.4</span>
+                  <span>•</span>
+                  <span>Framer Motion</span>
+                </p>
+              </div>
+            </div>
           </div>
         </footer>
       </div>
