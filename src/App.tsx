@@ -11,6 +11,7 @@ import { ServiceManager } from '@/features/inventory/components/ServiceManager';
 import { ConfigManager } from '@/features/inventory/components/ConfigManager';
 import { HistoryViewer } from '@/features/history/components/HistoryViewer';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
+import { MobileNavBar } from '@/shared/components/MobileNavBar';
 import { Toaster } from '@/shared/ui/toaster';
 import { pageVariants, pageTransition } from '@/shared/utils/animations';
 import { ConfirmProvider } from '@/shared/contexts/ConfirmContext';
@@ -28,6 +29,7 @@ const queryClient = new QueryClient({
 function App() {
   const [dbInitialized, setDbInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('calculator');
 
   useEffect(() => {
     // Inicializar base de datos
@@ -74,11 +76,11 @@ function App() {
         <div className="min-h-screen bg-background">
         {/* Header */}
         <header className="border-b bg-card">
-          <div className="container mx-auto px-4 py-6 max-w-7xl">
+          <div className="container mx-auto px-4 py-3 md:py-6 max-w-7xl">
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-1">
-                <h1 className="text-3xl font-bold">PlugFix Calculator v2.0</h1>
-                <p className="text-xs text-muted-foreground">
+                <h1 className="text-2xl md:text-3xl font-bold">PlugFix Calculator v2.0</h1>
+                <p className="text-xs text-muted-foreground hidden md:block">
                   Sistema de cálculo de precios para reparaciones
                 </p>
               </div>
@@ -88,9 +90,9 @@ function App() {
         </header>
 
         {/* Main Content */}
-        <main className="container mx-auto px-4 py-8 max-w-7xl">
-          <Tabs defaultValue="calculator" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-6">
+        <main className="container mx-auto px-4 py-6 md:py-8 max-w-7xl pb-20 md:pb-8">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="hidden md:grid w-full grid-cols-3 lg:w-auto lg:grid-cols-6">
               <TabsTrigger value="calculator">🧮 Calculadora</TabsTrigger>
               <TabsTrigger value="history">📋 Historial</TabsTrigger>
               <TabsTrigger value="brands">🏷️ Marcas</TabsTrigger>
@@ -180,7 +182,7 @@ function App() {
         </main>
 
         {/* Footer */}
-        <footer className="border-t mt-12 bg-gray-50/50 dark:bg-gray-900/20">
+        <footer className="hidden md:block border-t mt-12 bg-gray-50/50 dark:bg-gray-900/20">
           <div className="container mx-auto px-4 py-6 max-w-7xl">
             <div className="flex flex-col items-center gap-3">
               {/* Versión Principal */}
@@ -208,6 +210,9 @@ function App() {
             </div>
           </div>
         </footer>
+        
+        {/* Mobile Navigation Bar */}
+        <MobileNavBar activeTab={activeTab} onTabChange={setActiveTab} />
       </div>
       <Toaster />
       </ConfirmProvider>

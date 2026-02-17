@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calculator, Receipt } from 'lucide-react';
 import { useBrands } from '@/features/inventory/hooks/useBrands';
@@ -20,6 +20,7 @@ import {
 } from '@/shared/ui/select';
 import { formatARS } from '@/shared/utils/formatters';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
+import { SmartResultBar } from '@/shared/components/SmartResultBar';
 import type { PriceBreakdown, RepairHistory } from '@/core/domain/models';
 
 export function CalculatorForm() {
@@ -40,6 +41,7 @@ export function CalculatorForm() {
   });
 
   const [result, setResult] = useState<PriceBreakdown | null>(null);
+  const resultCardRef = useRef<HTMLDivElement>(null);
 
   // Filtrar modelos por marca seleccionada
   const filteredModels = formData.brandId
@@ -122,7 +124,15 @@ export function CalculatorForm() {
     setResult(null);
   };
 
+  const scrollToResult = () => {
+    resultCardRef.current?.scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'start' 
+    });
+  };
+
   return (
+    <>
     <div className="grid gap-6 lg:grid-cols-2">
       {/* Form */}
       <Card className="bg-white dark:bg-card shadow-lg">
@@ -137,6 +147,7 @@ export function CalculatorForm() {
               value={formData.clientName}
               onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
               placeholder="Nombre del cliente"
+              className="min-h-[44px]"
             />
           </div>
 
@@ -148,7 +159,7 @@ export function CalculatorForm() {
                 setFormData({ ...formData, brandId: value, modelId: '' })
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="min-h-[44px]">
                 <SelectValue placeholder="Selecciona una marca" />
               </SelectTrigger>
               <SelectContent>
@@ -168,7 +179,7 @@ export function CalculatorForm() {
               onValueChange={(value) => setFormData({ ...formData, modelId: value })}
               disabled={!formData.brandId}
             >
-              <SelectTrigger>
+              <SelectTrigger className="min-h-[44px]">
                 <SelectValue placeholder="Selecciona un modelo" />
               </SelectTrigger>
               <SelectContent>
@@ -192,7 +203,7 @@ export function CalculatorForm() {
               value={formData.serviceId}
               onValueChange={(value) => setFormData({ ...formData, serviceId: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="min-h-[44px]">
                 <SelectValue placeholder="Selecciona un servicio" />
               </SelectTrigger>
               <SelectContent>
@@ -212,11 +223,12 @@ export function CalculatorForm() {
               <div className="flex-1">
                 <Input
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   value={formData.partCost}
                   onChange={(e) => setFormData({ ...formData, partCost: e.target.value })}
                   placeholder="0.00"
-                  className="rounded-r-none border-r-0"
+                  className="rounded-r-none border-r-0 min-h-[44px]"
                 />
               </div>
               <Select
@@ -225,7 +237,7 @@ export function CalculatorForm() {
                   setFormData({ ...formData, currency: value })
                 }
               >
-                <SelectTrigger className="w-32 rounded-l-none">
+                <SelectTrigger className="w-32 rounded-l-none min-h-[44px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -239,12 +251,18 @@ export function CalculatorForm() {
           <div className="flex gap-2 pt-2">
             <Button 
               onClick={handleCalculate} 
-              className="flex-1 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:scale-100"
+              className="flex-1 min-h-[44px] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:scale-100"
               disabled={!isFormValid}
+              size="lg"
             >
               Calcular
             </Button>
-            <Button onClick={handleReset} variant="outline" className="transition-all hover:scale-[1.02] active:scale-[0.98]">
+            <Button 
+              onClick={handleReset} 
+              variant="outline" 
+              className="min-h-[44px] transition-all hover:scale-[1.02] active:scale-[0.98]"
+              size="lg"
+            >
               Limpiar
             </Button>
           </div>
@@ -252,7 +270,7 @@ export function CalculatorForm() {
       </Card>
 
       {/* Result - Ticket Style */}
-      <Card className="bg-white dark:bg-card shadow-lg">
+      <Card ref={resultCardRef} className="bg-white dark:bg-card shadow-lg">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Receipt className="h-5 w-5 text-muted-foreground" />
@@ -397,5 +415,16 @@ export function CalculatorForm() {
         </CardContent>
       </Card>
     </div>
+    
+    {/* Smart Result Bar - Solo móvil */}
+    <AnimatePresence>
+      {result && (
+        <SmartResultBar 
+          totalARS={result.finalPriceARS} 
+          onViewDetails={scrollToResult}
+        />
+      )}
+    </AnimatePresence>
+    </>
   );
 }
