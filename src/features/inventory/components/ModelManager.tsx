@@ -23,7 +23,7 @@ import {
 } from '@/shared/ui/dialog';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { BulkImportModal, BulkImportResult } from '@/shared/components/BulkImportModal';
-import { Database, Search, Plus, Trash2, AlertTriangle, Upload, Pencil, Calendar } from 'lucide-react';
+import { Database, Search, Plus, Trash2, AlertTriangle, Upload, Pencil, Calendar, ArrowUpDown } from 'lucide-react';
 import { suggestDeviceRiskAndCategory, isValidReleaseYear, getAgeDescription, calculateDeviceAge } from '@/core/utils/deviceAgeCalculator';
 
 // Mapeo de categorías a factores de riesgo
@@ -39,6 +39,7 @@ export function ModelManager() {
   const { models, addModel, updateModel, deleteModel, bulkAddModels } = useModels();
   const { confirm } = useConfirm();
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'year-desc' | 'year-asc' | 'name-asc' | 'name-desc' | 'risk-desc' | 'risk-asc'>('year-desc');
   const [showImportModal, setShowImportModal] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<{
@@ -72,6 +73,28 @@ export function ModelManager() {
       );
     });
   }, [models, brands, searchTerm]);
+
+  // Ordenar modelos según el criterio seleccionado
+  const sortedModels = useMemo(() => {
+    const modelsCopy = [...filteredModels];
+    
+    switch (sortBy) {
+      case 'year-desc':
+        return modelsCopy.sort((a, b) => (b.releaseYear || 0) - (a.releaseYear || 0));
+      case 'year-asc':
+        return modelsCopy.sort((a, b) => (a.releaseYear || 0) - (b.releaseYear || 0));
+      case 'name-asc':
+        return modelsCopy.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+      case 'name-desc':
+        return modelsCopy.sort((a, b) => b.name.localeCompare(a.name, 'es'));
+      case 'risk-desc':
+        return modelsCopy.sort((a, b) => b.riskFactor - a.riskFactor);
+      case 'risk-asc':
+        return modelsCopy.sort((a, b) => a.riskFactor - b.riskFactor);
+      default:
+        return modelsCopy;
+    }
+  }, [filteredModels, sortBy]);
 
   // Auto-sugerencia basada en el año de lanzamiento
   useEffect(() => {
@@ -322,15 +345,33 @@ export function ModelManager() {
         </CardContent>
       </Card>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        <Input
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Buscar modelos por nombre, marca o categoría..."
-          className="pl-12 h-12 text-base rounded-xl shadow-sm"
-        />
+      {/* Search Bar and Sort Controls */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar modelos por nombre, marca o categoría..."
+            className="pl-12 h-12 text-base rounded-xl shadow-sm"
+          />
+        </div>
+        <div className="relative sm:w-64">
+          <ArrowUpDown className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+          <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+            <SelectTrigger className="h-12 pl-11 rounded-xl shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="year-desc">Año (Más reciente)</SelectItem>
+              <SelectItem value="year-asc">Año (Más antiguo)</SelectItem>
+              <SelectItem value="name-asc">Nombre (A-Z)</SelectItem>
+              <SelectItem value="name-desc">Nombre (Z-A)</SelectItem>
+              <SelectItem value="risk-desc">Riesgo (Mayor a Menor)</SelectItem>
+              <SelectItem value="risk-asc">Riesgo (Menor a Mayor)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Models Grid */}
@@ -340,7 +381,7 @@ export function ModelManager() {
           title="Primero agrega marcas"
           description="Necesitas agregar al menos una marca antes de crear modelos."
         />
-      ) : filteredModels.length === 0 && searchTerm ? (
+      ) : sortedModels.length === 0 && searchTerm ? (
         <EmptyState
           icon={Search}
           title="Sin resultados"
@@ -354,7 +395,7 @@ export function ModelManager() {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredModels.map((model) => {
+          {sortedModels.map((model) => {
             const brand = brands.find((b) => b.id === model.brandId);
             return (
               <Card 
