@@ -36,7 +36,7 @@ export function ModelManager() {
       return (
         model.name.toLowerCase().includes(searchLower) ||
         brand?.name.toLowerCase().includes(searchLower) ||
-        model.category.toLowerCase().includes(searchLower)
+        model.category?.toLowerCase().includes(searchLower)
       );
     });
   }, [models, brands, searchTerm]);

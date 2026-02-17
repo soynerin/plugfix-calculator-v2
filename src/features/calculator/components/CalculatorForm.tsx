@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
-import { formatARS, formatUSD } from '@/shared/utils/formatters';
+import { formatARS } from '@/shared/utils/formatters';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import type { PriceBreakdown, RepairHistory } from '@/core/domain/models';
 
