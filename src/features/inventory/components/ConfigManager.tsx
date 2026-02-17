@@ -147,30 +147,40 @@ export function ConfigManager() {
               </p>
             </div>
 
-            {/* Cotización USD */}
+            {/* Tipo de Cambio (Input Group Visual) */}
             <div>
               <Label htmlFor="usdRate" className="text-sm font-medium">
-                Cotización USD
+                Tipo de Cambio (Dólar)
               </Label>
-              <div className="relative mt-1.5">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex items-center gap-1">
-                  <DollarSign className="h-4 w-4" />
-                  <span className="text-xs">US$</span>
+              <div className="flex items-center mt-1.5 rounded-md overflow-hidden border border-input focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 transition-all">
+                {/* Prefijo Estático: "1 USD =" */}
+                <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-800 border-r border-input">
+                  <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                    1 USD =
+                  </span>
                 </div>
+                
+                {/* Input Central */}
                 <Input
                   id="usdRate"
                   type="number"
                   step="10"
                   value={formData.usdRate}
                   onChange={(e) => setFormData({ ...formData, usdRate: e.target.value })}
-                  className="pl-16 pr-12"
+                  placeholder="Ej. 1250"
+                  className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-right font-semibold tabular-nums"
                 />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                  ARS
+                
+                {/* Sufijo Estático: "ARS" */}
+                <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border-l border-input">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    ARS
+                  </span>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-1.5">
-                Valor de conversión: 1 USD = {formatARS(parseFloat(formData.usdRate))}
+                Se usará este valor para convertir los costos de repuestos en dólares a pesos
               </p>
             </div>
           </div>
