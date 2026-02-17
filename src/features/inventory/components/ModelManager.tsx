@@ -13,16 +13,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/shared/ui/dialog';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { BulkImportModal, BulkImportResult } from '@/shared/components/BulkImportModal';
-import { Database, Search, Plus, Trash2, AlertTriangle, Upload } from 'lucide-react';
+import { Database, Search, Plus, Trash2, AlertTriangle, Upload, Pencil } from 'lucide-react';
 
 export function ModelManager() {
   const { brands } = useBrands();
-  const { models, addModel, deleteModel, bulkAddModels } = useModels();
+  const { models, addModel, updateModel, deleteModel, bulkAddModels } = useModels();
   const { confirm } = useConfirm();
   const [searchTerm, setSearchTerm] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<{
+    id: string;
+    name: string;
+    brandId: string;
+    riskFactor: string;
+    category: 'Gama Baja' | 'Gama Media' | 'Gama Alta' | 'Premium';
+  } | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     brandId: '',
@@ -54,6 +70,33 @@ export function ModelManager() {
         category: formData.category,
       });
       setFormData({ name: '', brandId: '', riskFactor: '1.0', category: 'Gama Media' });
+    }
+  };
+
+  const handleEditClick = (model: any) => {
+    setSelectedModel({
+      id: model.id,
+      name: model.name,
+      brandId: model.brandId,
+      riskFactor: model.riskFactor.toString(),
+      category: (model.category || 'Gama Media') as 'Gama Baja' | 'Gama Media' | 'Gama Alta' | 'Premium',
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateModel = () => {
+    if (selectedModel && selectedModel.name.trim() && selectedModel.brandId) {
+      updateModel({
+        id: selectedModel.id,
+        data: {
+          name: selectedModel.name.trim(),
+          brandId: selectedModel.brandId,
+          riskFactor: parseFloat(selectedModel.riskFactor),
+          category: selectedModel.category,
+        },
+      });
+      setIsEditModalOpen(false);
+      setSelectedModel(null);
     }
   };
 
@@ -263,18 +306,27 @@ export function ModelManager() {
                 className="group hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
               >
                 <CardContent className="p-5">
-                  {/* Header: Nombre del Modelo y Botón Eliminar */}
+                  {/* Header: Nombre del Modelo y Botones de Acción */}
                   <div className="flex items-start justify-between mb-2">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex-1 pr-2">
                       {model.name}
                     </h3>
-                    <button
-                      onClick={() => handleDeleteModel(model.id, model.name, brand?.name || 'Marca desconocida')}
-                      className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors duration-200"
-                      aria-label={`Eliminar ${model.name}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleEditClick(model)}
+                        className="flex-shrink-0 p-2 text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-500/10 rounded-md transition-colors duration-200"
+                        aria-label={`Editar ${model.name}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteModel(model.id, model.name, brand?.name || 'Marca desconocida')}
+                        className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors duration-200"
+                        aria-label={`Eliminar ${model.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Subtítulo: Nombre de la Marca */}
@@ -301,6 +353,109 @@ export function ModelManager() {
           })}
         </div>
       )}
+
+      {/* Modal de Edición */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Editar Modelo</DialogTitle>
+            <DialogDescription>
+              Modifica los datos del modelo. Los cambios se guardarán automáticamente.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedModel && (
+            <div className="grid gap-4 py-4">
+              {/* Marca */}
+              <div className="grid gap-2">
+                <Label htmlFor="edit-brand">Marca</Label>
+                <Select 
+                  value={selectedModel.brandId} 
+                  onValueChange={(value) => setSelectedModel({ ...selectedModel, brandId: value })}
+                >
+                  <SelectTrigger id="edit-brand">
+                    <SelectValue placeholder="Selecciona una marca" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brands.map((brand) => (
+                      <SelectItem key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Nombre del Modelo */}
+              <div className="grid gap-2">
+                <Label htmlFor="edit-name">Nombre del Modelo</Label>
+                <Input
+                  id="edit-name"
+                  value={selectedModel.name}
+                  onChange={(e) => setSelectedModel({ ...selectedModel, name: e.target.value })}
+                  placeholder="Ej: Galaxy S23"
+                  className="focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              {/* Factor de Riesgo */}
+              <div className="grid gap-2">
+                <Label htmlFor="edit-risk">Factor de Riesgo</Label>
+                <Input
+                  id="edit-risk"
+                  type="number"
+                  step="0.1"
+                  min="1.0"
+                  max="2.5"
+                  value={selectedModel.riskFactor}
+                  onChange={(e) => setSelectedModel({ ...selectedModel, riskFactor: e.target.value })}
+                  className="focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              {/* Categoría */}
+              <div className="grid gap-2">
+                <Label htmlFor="edit-category">Categoría</Label>
+                <Select
+                  value={selectedModel.category}
+                  onValueChange={(value: any) => setSelectedModel({ ...selectedModel, category: value })}
+                >
+                  <SelectTrigger id="edit-category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Gama Baja">Gama Baja</SelectItem>
+                    <SelectItem value="Gama Media">Gama Media</SelectItem>
+                    <SelectItem value="Gama Alta">Gama Alta</SelectItem>
+                    <SelectItem value="Premium">Premium</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsEditModalOpen(false);
+                setSelectedModel(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleUpdateModel}
+              disabled={!selectedModel?.name.trim() || !selectedModel?.brandId}
+              className="bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white"
+            >
+              Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <BulkImportModal
         open={showImportModal}
