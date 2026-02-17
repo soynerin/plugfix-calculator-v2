@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useModels } from '../hooks/useModels';
 import { useBrands } from '../hooks/useBrands';
 import { Button } from '@/shared/ui/button';
@@ -12,16 +12,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
+import { EmptyState } from '@/shared/ui/empty-state';
+import { Database, Search } from 'lucide-react';
 
 export function ModelManager() {
   const { brands } = useBrands();
   const { models, addModel, deleteModel } = useModels();
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     brandId: '',
     riskFactor: '1.0',
     category: 'Gama Media' as const,
   });
+
+  // Filtrar modelos por término de búsqueda
+  const filteredModels = useMemo(() => {
+    if (!searchTerm.trim()) return models;
+    
+    const searchLower = searchTerm.toLowerCase().trim();
+    return models.filter((model) => {
+      const brand = brands.find((b) => b.id === model.brandId);
+      return (
+        model.name.toLowerCase().includes(searchLower) ||
+        brand?.name.toLowerCase().includes(searchLower) ||
+        model.category.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [models, brands, searchTerm]);
 
   const handleAddModel = () => {
     if (formData.name.trim() && formData.brandId) {
@@ -106,12 +124,43 @@ export function ModelManager() {
         </div>
 
         {/* List */}
-        <div className="space-y-2 max-h-[400px] overflow-y-auto">
-          {models.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hay modelos registrados</p>
+        <div className="space-y-3">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar modelos..."
+              className="pl-9"
+            />
+          </div>
+
+          {/* Empty State - Case 1: No data at all */}
+          {brands.length === 0 ? (
+            <EmptyState
+              icon={Database}
+              title="No hay modelos aún"
+              description="Comienza agregando tu primera Marca y Modelo arriba."
+            />
+          ) : /* Empty State - Case 2: No search results */
+          filteredModels.length === 0 && searchTerm ? (
+            <EmptyState
+              icon={Search}
+              title="Sin resultados"
+              description="No encontramos modelos que coincidan con tu búsqueda."
+            />
+          ) : /* Empty State - No models added yet (but brands exist) */
+          models.length === 0 ? (
+            <EmptyState
+              icon={Database}
+              title="No hay modelos aún"
+              description="Comienza agregando tu primera Marca y Modelo arriba."
+            />
           ) : (
-            <div className="grid gap-2">
-              {models.map((model) => {
+            /* Models List */
+            <div className="grid gap-2 max-h-[400px] overflow-y-auto">
+              {filteredModels.map((model) => {
                 const brand = brands.find((b) => b.id === model.brandId);
                 return (
                   <div
