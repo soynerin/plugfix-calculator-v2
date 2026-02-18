@@ -10,7 +10,6 @@ import { ModelManager } from '@/features/inventory/components/ModelManager';
 import { ServiceManager } from '@/features/inventory/components/ServiceManager';
 import { ConfigManager } from '@/features/inventory/components/ConfigManager';
 import { HistoryViewer } from '@/features/history/components/HistoryViewer';
-import { DatabaseDiagnostic } from '@/features/settings/components/DatabaseDiagnostic';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import { MobileNavBar } from '@/shared/components/MobileNavBar';
 import { Toaster } from '@/shared/ui/toaster';
@@ -177,7 +176,6 @@ function App() {
                 transition={pageTransition}
               >
                 <div className="grid gap-6">
-                  <DatabaseDiagnostic />
                   <ConfigManager />
                 </div>
               </motion.div>
