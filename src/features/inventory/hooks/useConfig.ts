@@ -42,5 +42,7 @@ export function useConfig() {
     isLoading,
     error,
     updateConfig: updateConfig.mutate,
+    updateConfigAsync: updateConfig.mutateAsync,
+    isUpdating: updateConfig.isPending,
   };
 }

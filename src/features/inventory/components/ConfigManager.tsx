@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useConfig } from '@/features/inventory/hooks/useConfig';
 import { useDolarBlue } from '@/features/inventory/hooks/useDolarBlue';
 import { Button } from '@/shared/ui/button';
@@ -11,25 +11,45 @@ import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { motion } from 'framer-motion';
 
 export function ConfigManager() {
-  const { config, updateConfig, isLoading } = useConfig();
+  const { config, updateConfigAsync, isLoading, isUpdating } = useConfig();
   const { toast } = useToast();
   const { isLoading: isDolarBlueLoading, refetch: refetchDolarBlue } = useDolarBlue();
   const [formData, setFormData] = useState({
-    hourlyRate: config?.hourlyRate.toString() || '13000',
-    margin: config?.margin.toString() || '40',
-    usdRate: config?.usdRate.toString() || '1200',
+    hourlyRate: '13000',
+    margin: '40',
+    usdRate: '1200',
   });
 
-  const handleSave = () => {
-    updateConfig({
-      hourlyRate: parseFloat(formData.hourlyRate),
-      margin: parseFloat(formData.margin),
-      usdRate: parseFloat(formData.usdRate),
-    });
-    toast({
-      title: 'Configuración guardada',
-      description: 'Los cambios se aplicarán a todos los cálculos nuevos',
-    });
+  // Sincronizar formData con config cuando se carga desde la base de datos
+  useEffect(() => {
+    if (config) {
+      setFormData({
+        hourlyRate: config.hourlyRate.toString(),
+        margin: config.margin.toString(),
+        usdRate: config.usdRate.toString(),
+      });
+    }
+  }, [config]);
+
+  const handleSave = async () => {
+    try {
+      await updateConfigAsync({
+        hourlyRate: parseFloat(formData.hourlyRate),
+        margin: parseFloat(formData.margin),
+        usdRate: parseFloat(formData.usdRate),
+      });
+      toast({
+        title: '✅ Configuración guardada',
+        description: 'Los cambios se aplicarán a todos los cálculos nuevos',
+      });
+    } catch (error) {
+      console.error('Error al guardar configuración:', error);
+      toast({
+        title: '❌ Error al guardar',
+        description: error instanceof Error ? error.message : 'No se pudo actualizar la configuración',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleReset = () => {
@@ -221,8 +241,12 @@ export function ConfigManager() {
 
           {/* Botonera */}
           <div className="space-y-2 pt-2">
-            <Button onClick={handleSave} className="w-full h-11 text-base font-semibold">
-              Guardar Cambios
+            <Button 
+              onClick={handleSave} 
+              className="w-full h-11 text-base font-semibold"
+              disabled={isUpdating}
+            >
+              {isUpdating ? 'Guardando...' : 'Guardar Cambios'}
             </Button>
             <button
               onClick={handleReset}

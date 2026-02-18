@@ -710,7 +710,7 @@ export class SupabaseAdapter implements IDatabaseService {
       hourlyRate: data.hourly_rate,
       margin: data.margin,
       usdRate: data.usd_rate,
-      ...(data.last_updated && { lastUpdated: new Date(data.last_updated) })
+      ...(data.updated_at && { updatedAt: new Date(data.updated_at) })
     };
   }
 

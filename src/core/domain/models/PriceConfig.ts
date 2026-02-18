@@ -3,5 +3,5 @@ export interface PriceConfig {
   hourlyRate: number;      // Tarifa por hora (ARS)
   margin: number;          // Margen de ganancia (%)
   usdRate: number;         // Cotización USD (puede actualizarse desde API)
-  lastUpdated?: Date;
+  updatedAt?: Date;
 }

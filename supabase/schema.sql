@@ -63,7 +63,7 @@ CREATE TABLE config (
   hourly_rate DECIMAL(10,2) NOT NULL CHECK (hourly_rate > 0),
   margin DECIMAL(5,2) NOT NULL CHECK (margin >= 0 AND margin <= 100),
   usd_rate DECIMAL(10,2) NOT NULL CHECK (usd_rate > 0),
-  last_updated TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Ensure only one config row exists
