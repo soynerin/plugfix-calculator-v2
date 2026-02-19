@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { SignUpPage, LoginPage } from '@/features/auth';
+import { SignUpPage, LoginPage, ForgotPasswordPage, UpdatePasswordPage } from '@/features/auth';
 import { motion } from 'framer-motion';
 import { db } from '@/core/services';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
@@ -79,6 +79,8 @@ function App() {
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/register" element={<SignUpPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/update-password" element={<UpdatePasswordPage />} />
           <Route
             path="/*"
             element={
