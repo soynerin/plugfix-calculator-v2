@@ -8,6 +8,7 @@ import {
   UpdatePasswordPage,
   AuthProvider,
   ProtectedRoute,
+  GuestRoute,
   useAuth,
 } from '@/features/auth';
 import { motion } from 'framer-motion';
@@ -278,10 +279,10 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <ConfirmProvider>
           <Routes>
-            <Route path="/signup" element={<SignUpPage />} />
-            <Route path="/register" element={<SignUpPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/signup" element={<GuestRoute><SignUpPage /></GuestRoute>} />
+            <Route path="/register" element={<GuestRoute><SignUpPage /></GuestRoute>} />
+            <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
+            <Route path="/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
             <Route path="/update-password" element={<UpdatePasswordPage />} />
             <Route
               path="/*"

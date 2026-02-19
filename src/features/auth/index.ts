@@ -5,3 +5,4 @@ export { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 export { UpdatePasswordPage } from './pages/UpdatePasswordPage';
 export { AuthProvider, useAuth } from './contexts/AuthContext';
 export { ProtectedRoute } from './components/ProtectedRoute';
+export { GuestRoute } from './components/GuestRoute';
