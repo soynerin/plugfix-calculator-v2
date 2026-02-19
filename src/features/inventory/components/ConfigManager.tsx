@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { useConfig } from '@/features/inventory/hooks/useConfig';
 import { useDolarBlue } from '@/features/inventory/hooks/useDolarBlue';
 import { useServices } from '@/features/inventory/hooks/useServices';
-import { usePartTypes } from '@/features/inventory/hooks/usePartTypes';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -15,194 +14,113 @@ import {
 } from '@/shared/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import {
-  DollarSign, TrendingUp, Percent, Sparkles, RefreshCw,
-  ChevronDown, Layers, Smartphone, Info, Zap,
+  DollarSign, TrendingUp, Percent, Zap, RefreshCw,
+  Info, ShieldCheck, Calculator,
 } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 import { useToast } from '@/shared/hooks/use-toast';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DEFAULT_CONFIG } from '@/core/domain/models/PriceConfig';
-import type { TierMultipliers, BrandMultipliers } from '@/core/domain/models/PriceConfig';
+import { PriceCalculator } from '@/core/services/PriceCalculator';
 
-// --- Stepper input for multiplier values --------------------------------------
-interface MultiplierFieldProps {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
+// ─── Toggle Switch ─────────────────────────────────────────────────────────────
+interface ToggleSwitchProps {
+  id: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+}
+function ToggleSwitch({ id, checked, onChange, disabled }: ToggleSwitchProps) {
+  return (
+    <button
+      id={id}
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
+        transition-colors duration-200 ease-in-out
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+        disabled:cursor-not-allowed disabled:opacity-50
+        ${checked ? 'bg-primary-600' : 'bg-input'}`}
+    >
+      <span
+        className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0
+          transition-transform duration-200 ease-in-out
+          ${checked ? 'translate-x-5' : 'translate-x-0'}`}
+      />
+    </button>
+  );
 }
 
-function MultiplierField({ label, value, onChange }: MultiplierFieldProps) {
-  const adjust = (delta: number) => {
-    const next = Math.round((value + delta) * 10) / 10;
-    if (next >= 0.1) onChange(next);
-  };
+// ─── Section divider label ─────────────────────────────────────────────────────
+function SectionLabel({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div className="flex items-center justify-between gap-2 py-1">
-      <span className="text-sm text-foreground flex-1">{label}</span>
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => adjust(-0.1)}
-          className="w-7 h-7 rounded border border-input bg-background hover:bg-muted flex items-center justify-center text-base font-medium leading-none transition-colors select-none"
-        >
-          -
-        </button>
-        <Input
-          type="number"
-          step={0.1}
-          min={0.1}
-          value={value.toFixed(1)}
-          onChange={(e) => {
-            const v = parseFloat(e.target.value);
-            if (!isNaN(v) && v >= 0.1) onChange(Math.round(v * 10) / 10);
-          }}
-          className="w-16 text-center tabular-nums h-7 text-sm px-1"
-        />
-        <button
-          type="button"
-          onClick={() => adjust(0.1)}
-          className="w-7 h-7 rounded border border-input bg-background hover:bg-muted flex items-center justify-center text-base font-medium leading-none transition-colors select-none"
-        >
-          +
-        </button>
-        <span className="text-xs text-muted-foreground w-4 text-right">×</span>
-      </div>
+    <div className="flex items-center gap-2 mb-4">
+      <span className="text-primary-600">{icon}</span>
+      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{text}</span>
     </div>
   );
 }
 
-// --- Collapsible accordion section --------------------------------------------
-interface AccordionSectionProps {
-  icon: React.ReactNode;
-  title: string;
-  badge?: string;
-  isOpen: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}
-
-function AccordionSection({ icon, title, badge, isOpen, onToggle, children }: AccordionSectionProps) {
-  return (
-    <div className="rounded-lg border border-input overflow-hidden">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="w-full flex items-center justify-between px-4 py-3 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
-      >
-        <div className="flex items-center gap-2.5">
-          <span className="text-primary-600">{icon}</span>
-          <span className="text-sm font-semibold">{title}</span>
-          {badge && (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
-              {badge}
-            </span>
-          )}
-        </div>
-        <motion.span
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-          className="text-muted-foreground"
-        >
-          <ChevronDown className="h-4 w-4" />
-        </motion.span>
-      </button>
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            key="content"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: 'easeInOut' }}
-            className="overflow-hidden"
-          >
-            <div className="px-4 py-4 border-t border-input space-y-1">
-              {children}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// --- Main component ------------------------------------------------------------
+// ─── Main Component ────────────────────────────────────────────────────────────
 export function ConfigManager() {
   const { config, updateConfigAsync, isLoading, isUpdating } = useConfig();
   const { toast } = useToast();
   const { isLoading: isDolarBlueLoading, refetch: refetchDolarBlue } = useDolarBlue();
   const { services } = useServices();
-  const { partTypes } = usePartTypes();
 
   const [formData, setFormData] = useState({
-    hourlyRate: '13000',
-    margin: '40',
-    usdRate: '1200',
+    usdRate: String(DEFAULT_CONFIG.usdRate),
+    defaultMargin: String(DEFAULT_CONFIG.defaultMargin),
+    minimumLaborCost: String(DEFAULT_CONFIG.minimumLaborCost),
+    applyCateaModuleRule: DEFAULT_CONFIG.applyCateaModuleRule,
   });
 
-  const [multipliers, setMultipliers] = useState({
-    tier:  { ...DEFAULT_CONFIG.tierMultipliers },
-    brand: { ...DEFAULT_CONFIG.brandMultipliers },
-  });
+  const [laborCostCurrency, setLaborCostCurrency] = useState<'ARS' | 'USD'>('ARS');
 
-  const [simState, setSimState] = useState({
-    partCostUSD: 100,
-    tier:       'media' as keyof TierMultipliers,
-    brand:      'otros' as keyof BrandMultipliers,
-    partTypeId: '',
-  });
-  const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [simPartCost, setSimPartCost] = useState(50);
+  const [simCurrency, setSimCurrency] = useState<'USD' | 'ARS'>('USD');
+  const [simServiceId, setSimServiceId] = useState('');
 
-  // Set default service when list first loads
+  // Set default service for simulator when list loads
   useEffect(() => {
-    if (services.length > 0 && !selectedServiceId) {
-      setSelectedServiceId(services[0]!.id);
+    if (services.length > 0 && !simServiceId) {
+      setSimServiceId(services[0]!.id);
     }
-  }, [services, selectedServiceId]);
+  }, [services, simServiceId]);
 
-  // Advanced mode toggle (hidden multiplier sections by default)
-  const [advancedMode, setAdvancedMode] = useState(false);
-
-  // Economics section open by default; multiplier sections closed
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['economics']));
-  const toggleSection = (id: string) =>
-    setOpenSections(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-
-  // Sync with DB config on load
+  // Sync form with DB config on load
   useEffect(() => {
     if (config) {
       setFormData({
-        hourlyRate: config.hourlyRate.toString(),
-        margin: config.margin.toString(),
-        usdRate: config.usdRate.toString(),
+        usdRate:              String(config.usdRate),
+        defaultMargin:        String(config.defaultMargin),
+        minimumLaborCost:     String(config.minimumLaborCost),
+        applyCateaModuleRule: config.applyCateaModuleRule,
       });
-      setMultipliers({
-        tier:  { ...DEFAULT_CONFIG.tierMultipliers,  ...config.tierMultipliers },
-        brand: { ...DEFAULT_CONFIG.brandMultipliers, ...config.brandMultipliers },
-      });
+      // La BD siempre guarda en ARS → resetear la moneda del campo al sincronizar
+      setLaborCostCurrency('ARS');
     }
   }, [config]);
 
   const handleSave = async () => {
     try {
       await updateConfigAsync({
-        hourlyRate: parseFloat(formData.hourlyRate),
-        margin: parseFloat(formData.margin),
-        usdRate: parseFloat(formData.usdRate),
-        tierMultipliers:  multipliers.tier,
-        brandMultipliers: multipliers.brand,
+        usdRate:              parseFloat(formData.usdRate),
+        defaultMargin:        parseFloat(formData.defaultMargin),
+        minimumLaborCost: laborCostCurrency === 'USD'
+          ? parseFloat(formData.minimumLaborCost) * (parseFloat(formData.usdRate) || 1)
+          : parseFloat(formData.minimumLaborCost),
+        applyCateaModuleRule: formData.applyCateaModuleRule,
       });
       toast({
         title: '✅ Configuración guardada',
-        description: 'Los cambios se aplicarán a todos los cálculos nuevos',
+        description: 'Los cambios se aplicarán a todos los cálculos nuevos.',
       });
     } catch (error) {
-      console.error('Error al guardar configuración:', error);
       toast({
         title: '❌ Error al guardar',
         description: error instanceof Error ? error.message : 'No se pudo actualizar la configuración',
@@ -214,15 +132,12 @@ export function ConfigManager() {
   const handleReset = () => {
     if (config) {
       setFormData({
-        hourlyRate: config.hourlyRate.toString(),
-        margin: config.margin.toString(),
-        usdRate: config.usdRate.toString(),
+        usdRate:              String(config.usdRate),
+        defaultMargin:        String(config.defaultMargin),
+        minimumLaborCost:     String(config.minimumLaborCost),
+        applyCateaModuleRule: config.applyCateaModuleRule,
       });
-      setMultipliers({
-        tier:  { ...DEFAULT_CONFIG.tierMultipliers,  ...config.tierMultipliers },
-        brand: { ...DEFAULT_CONFIG.brandMultipliers, ...config.brandMultipliers },
-      });
-      toast({ title: 'Valores restaurados', description: 'Se han restaurado los últimos valores guardados' });
+      toast({ title: 'Valores restaurados', description: 'Se han restaurado los últimos valores guardados.' });
     }
   };
 
@@ -230,436 +145,326 @@ export function ConfigManager() {
     try {
       const result = await refetchDolarBlue();
       if (result.data?.venta) {
-        const roundedVenta = Math.round(result.data.venta);
-        setFormData({ ...formData, usdRate: roundedVenta.toString() });
+        const rounded = Math.round(result.data.venta);
+        setFormData(f => ({ ...f, usdRate: String(rounded) }));
         toast({
           title: '💰 Cotización actualizada',
-          description: `Dolar Blue: $${roundedVenta.toLocaleString('es-AR')} (Fuente: DolarApi)`,
+          description: `Dólar Blue: $${rounded.toLocaleString('es-AR')} (Fuente: DolarApi)`,
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: '❌ Error de conexión',
-        description: 'No se pudo conectar con la API de cotizaciones',
+        description: 'No se pudo conectar con la API de cotizaciones.',
         variant: 'destructive',
       });
     }
   };
 
-  // Typed setters for each multiplier group
-  const setTier  = (key: keyof TierMultipliers,  val: number) =>
-    setMultipliers(p => ({ ...p, tier:  { ...p.tier,  [key]: val } }));
-  const setBrand = (key: keyof BrandMultipliers, val: number) =>
-    setMultipliers(p => ({ ...p, brand: { ...p.brand, [key]: val } }));
+  // ── Simulador en tiempo real ─────────────────────────────────────────────────
+  const simService = services.find(s => s.id === simServiceId) ?? services[0];
+  const simIsModule = /pantalla|módulo|modulo|screen/i.test(simService?.name ?? '');
 
-  // Set default partType when list first loads
-  useEffect(() => {
-    if (partTypes.length > 0 && !simState.partTypeId) {
-      setSimState(p => ({ ...p, partTypeId: partTypes[0]!.id }));
-    }
-  }, [partTypes, simState.partTypeId]);
-
-  // Simulación en tiempo real — usa los valores del formulario y los controles del simulador
   const simulation = useMemo(() => {
-    const selectedService = services.find(s => s.id === selectedServiceId) ?? services[0];
-    const baseHours = selectedService?.hours ?? 1;
+    const usdRate          = parseFloat(formData.usdRate) || 1;
+    const defaultMargin    = parseFloat(formData.defaultMargin) || 0;
+    const minimumLaborCostRaw = parseFloat(formData.minimumLaborCost) || 0;
+    const minimumLaborCost = laborCostCurrency === 'USD'
+      ? minimumLaborCostRaw * usdRate
+      : minimumLaborCostRaw;
+    const { applyCateaModuleRule } = formData;
+    const useCatea = applyCateaModuleRule && simIsModule;
 
-    const partCostUSD  = simState.partCostUSD || 0;
-    const hourlyRate   = parseFloat(formData.hourlyRate) || 0;
-    const margin       = parseFloat(formData.margin) || 0;
-    const usdRate      = parseFloat(formData.usdRate) || 1;
+    const result = PriceCalculator.calculate({
+      partCost: simPartCost,
+      currency: simCurrency,
+      usdRate,
+      defaultMargin,
+      minimumLaborCost,
+      applyCateaModuleRule,
+      isModuleService: simIsModule,
+    });
 
-    const tierMult  = multipliers.tier[simState.tier];
-    const brandMult = multipliers.brand[simState.brand];
-    const selectedPartType = partTypes.find(p => p.id === simState.partTypeId);
-    const partMult  = selectedPartType?.riskMultiplier ?? 1.0;
-
-    const combinedRisk = advancedMode
-      ? Math.round(tierMult * brandMult * partMult * 100) / 100
-      : 1;
-
-    const partCostARS        = partCostUSD * usdRate;
-    const partCostWithMargin = partCostARS * (1 + margin / 100);
-    const marginAmount       = partCostWithMargin - partCostARS;
-    const laborCostARS       = hourlyRate * baseHours * combinedRisk;
-    const subtotal           = partCostWithMargin + laborCostARS;
-    const finalPrice         = Math.ceil(subtotal / 100) * 100;
-
-    return {
-      baseHours,
-      partCostUSD,
-      partCostARS:   Math.round(partCostARS),
-      marginAmount:  Math.round(marginAmount),
-      laborCostARS:  Math.round(laborCostARS),
-      finalPrice,
-      tierMult,
-      brandMult,
-      partMult,
-      combinedRisk,
-    };
-  }, [formData.hourlyRate, formData.margin, formData.usdRate, simState, multipliers, advancedMode, services, selectedServiceId, partTypes]);
+    return { ...result, useCatea };
+  }, [formData, laborCostCurrency, simPartCost, simCurrency, simIsModule]);
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
         <Spinner size="lg" />
-        <p className="text-sm text-gray-400 dark:text-gray-500">Cargando datos...</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500">Cargando configuración...</p>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      {/* -- Columna Izquierda: Acordeón de configuración -- */}
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary-600" />
-            Configuración de Precios
-          </CardTitle>
-          <CardDescription>Variables económicas e índices de riesgo del taller</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+    <div className="grid gap-6 lg:grid-cols-2 items-start">
 
-          {/* -- Sección 1: Variables Económicas -- */}
-          <AccordionSection
-            icon={<DollarSign className="h-4 w-4" />}
-            title="Variables Económicas"
-            isOpen={openSections.has('economics')}
-            onToggle={() => toggleSection('economics')}
-          >
-            <div className="grid gap-4 pt-1">
-              {/* Tarifa por Hora */}
-              <div>
-                <Label htmlFor="hourlyRate" className="text-sm font-medium">Tarifa por Hora</Label>
-                <div className="relative mt-1.5">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">$</div>
-                  <Input
-                    id="hourlyRate"
-                    type="number"
-                    step="100"
-                    value={formData.hourlyRate}
-                    onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
-                    className="pl-7 pr-12"
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">ARS</div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1.5">Costo de tu hora de trabajo técnico</p>
+      {/* ── Columna Izquierda ──────────────────────────────────────────────── */}
+      <div className="space-y-5">
+
+        {/* Tarjeta 1: Parámetros del Taller */}
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary-600" />
+              Parámetros del Taller
+            </CardTitle>
+            <CardDescription>Variables económicas que afectan todos los presupuestos</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+
+            {/* Cotización del Dólar */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label htmlFor="usdRate" className="text-sm font-medium">Cotización del Dólar</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleUpdateDolarBlue}
+                  disabled={isDolarBlueLoading}
+                  className="h-7 text-xs gap-1.5 text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${isDolarBlueLoading ? 'animate-spin' : ''}`} />
+                  {isDolarBlueLoading ? 'Actualizando...' : 'Traer Dólar Blue'}
+                </Button>
               </div>
-
-              {/* Margen de Ganancia */}
-              <div>
-                <Label htmlFor="margin" className="text-sm font-medium">Margen de Ganancia</Label>
-                <div className="relative mt-1.5">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
-                    <Percent className="h-4 w-4" />
-                  </div>
-                  <Input
-                    id="margin"
-                    type="number"
-                    step="1"
-                    min="0"
-                    max="100"
-                    value={formData.margin}
-                    onChange={(e) => setFormData({ ...formData, margin: e.target.value })}
-                    className="pl-10 pr-8"
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-lg">%</div>
+              <div className="flex items-center rounded-md overflow-hidden border border-input focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 transition-all">
+                <div className="flex items-center gap-1.5 px-3 py-2 bg-muted border-r border-input">
+                  <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">1 USD =</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1.5">Este porcentaje se aplica sobre el costo del repuesto</p>
+                <Input
+                  id="usdRate"
+                  type="number"
+                  step="10"
+                  min="1"
+                  value={formData.usdRate}
+                  onChange={e => setFormData(f => ({ ...f, usdRate: e.target.value }))}
+                  placeholder="Ej. 1250"
+                  className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-right font-semibold tabular-nums"
+                />
+                <div className="px-3 py-2 bg-muted border-l border-input">
+                  <span className="text-sm font-medium text-muted-foreground">ARS</span>
+                </div>
               </div>
-
-              {/* Tipo de Cambio */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <Label htmlFor="usdRate" className="text-sm font-medium">Tipo de Cambio (Dólar)</Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleUpdateDolarBlue}
-                    disabled={isDolarBlueLoading}
-                    className="h-7 text-xs gap-1.5 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 ${isDolarBlueLoading ? 'animate-spin' : ''}`} />
-                    {isDolarBlueLoading ? 'Actualizando...' : 'Dolar Blue'}
-                  </Button>
-                </div>
-                <div className="flex items-center rounded-md overflow-hidden border border-input focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 transition-all">
-                  <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-800 border-r border-input">
-                    <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">1 USD =</span>
-                  </div>
-                  <Input
-                    id="usdRate"
-                    type="number"
-                    step="10"
-                    value={formData.usdRate}
-                    onChange={(e) => setFormData({ ...formData, usdRate: e.target.value })}
-                    placeholder="Ej. 1250"
-                    className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-right font-semibold tabular-nums"
-                  />
-                  <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border-l border-input">
-                    <span className="text-sm font-medium text-muted-foreground">ARS</span>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  Se usa para convertir repuestos en dólares a pesos
-                </p>
-              </div>
-            </div>
-          </AccordionSection>
-
-          {/* -- Toggle: Modo Avanzado -- */}
-          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-muted/40 border border-input">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={advancedMode}
-              onClick={() => setAdvancedMode(v => !v)}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${advancedMode ? 'bg-primary-600' : 'bg-input'}`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out ${advancedMode ? 'translate-x-5' : 'translate-x-0'}`}
-              />
-            </button>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold leading-none flex items-center gap-1.5">
-                <Zap className="h-3.5 w-3.5 text-amber-500" />
-                Activar Cálculo Dinámico por Riesgo
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Se usará para pesificar los repuestos cotizados en dólares.
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">Modo Avanzado</p>
             </div>
-          </div>
 
-          {/* -- Banner educativo (visible solo en modo avanzado) -- */}
-          <AnimatePresence initial={false}>
-            {advancedMode && (
-              <motion.div
-                key="edu-banner"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.22, ease: 'easeInOut' }}
-                className="overflow-hidden"
-              >
-                <div className="flex gap-3 p-3.5 rounded-lg bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800">
-                  <Info className="h-4 w-4 mt-0.5 shrink-0 text-cyan-600 dark:text-cyan-400" />
-                  <p className="text-xs leading-relaxed text-cyan-800 dark:text-cyan-200">
-                    <span className="font-semibold">¿Por qué usar extras de riesgo?</span>{' '}
-                    Cobrar lo mismo por abrir un equipo de gama baja que uno premium es un riesgo para tu negocio.
-                    Usá estos extras para que el sistema aumente automáticamente tu mano de obra según la complejidad del equipo.
-                  </p>
+            {/* Margen General de Repuestos */}
+            <div>
+              <Label htmlFor="defaultMargin" className="text-sm font-medium">
+                Margen General de Repuestos
+              </Label>
+              <div className="relative mt-1.5">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                  <Percent className="h-4 w-4" />
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                <Input
+                  id="defaultMargin"
+                  type="number"
+                  step="5"
+                  min="0"
+                  max="500"
+                  value={formData.defaultMargin}
+                  onChange={e => setFormData(f => ({ ...f, defaultMargin: e.target.value }))}
+                  className="pl-10 pr-8"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-lg pointer-events-none">%</div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                En el rubro se suele cobrar entre 80% y 100% de recargo sobre el costo de la pieza.
+              </p>
+            </div>
 
-          {/* -- Secciones de Extras (solo visibles en modo avanzado) -- */}
-          <div className={`space-y-3 transition-all duration-200 ${!advancedMode ? 'opacity-40 pointer-events-none select-none' : ''}`}>
-          <AccordionSection
-            icon={<Layers className="h-4 w-4" />}
-            title="Multiplicadores de Gama"
-            badge="Mano de obra"
-            isOpen={openSections.has('tier')}
-            onToggle={() => toggleSection('tier')}
-          >
-            <p className="text-xs text-muted-foreground pb-2">
-              Multiplica el costo de mano de obra según la complejidad y riesgo de desarmar el equipo.
-            </p>
-            <MultiplierField label="Premium"    value={multipliers.tier.premium} onChange={v => setTier('premium', v)} />
-            <MultiplierField label="Gama Alta"  value={multipliers.tier.alta}    onChange={v => setTier('alta', v)} />
-            <MultiplierField label="Gama Media" value={multipliers.tier.media}   onChange={v => setTier('media', v)} />
-            <MultiplierField label="Gama Baja"  value={multipliers.tier.baja}    onChange={v => setTier('baja', v)} />
-          </AccordionSection>
+            {/* Mano de Obra Mínima */}
+            <div>
+              <Label htmlFor="minimumLaborCost" className="text-sm font-medium">
+                Mano de Obra Mínima
+              </Label>
+              <div className="flex gap-2 mt-1.5">
+                <div className="relative flex-1">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-sm font-medium">$</div>
+                  <Input
+                    id="minimumLaborCost"
+                    type="number"
+                    step={laborCostCurrency === 'USD' ? 5 : 500}
+                    min="0"
+                    value={formData.minimumLaborCost}
+                    onChange={e => setFormData(f => ({ ...f, minimumLaborCost: e.target.value }))}
+                    className="pl-7"
+                  />
+                </div>
+                <Select
+                  value={laborCostCurrency}
+                  onValueChange={v => setLaborCostCurrency(v as 'ARS' | 'USD')}
+                >
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ARS">ARS</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                El piso mínimo que cobrarás por abrir un equipo, independientemente del tiempo.
+                {laborCostCurrency === 'USD' && (
+                  <span className="ml-1 text-primary-600 dark:text-primary-400 font-medium">
+                    ≈ ${Math.round((parseFloat(formData.minimumLaborCost) || 0) * (parseFloat(formData.usdRate) || 1)).toLocaleString('es-AR')} ARS
+                  </span>
+                )}
+              </p>
+            </div>
 
-          {/* -- Sección 3: Extra por Marca -- */}
-          <AccordionSection
-            icon={<Smartphone className="h-4 w-4" />}
-            title="Extra por Marca"
-            badge="Riesgo"
-            isOpen={openSections.has('brand')}
-            onToggle={() => toggleSection('brand')}
-          >
-            <p className="text-xs text-muted-foreground pb-2">
-              Apple por emparejamiento de series, Samsung por pantallas curvas, el resto por riesgo estándar.
-            </p>
-            <MultiplierField label="Apple"    value={multipliers.brand.apple}    onChange={v => setBrand('apple', v)} />
-            <MultiplierField label="Samsung"  value={multipliers.brand.samsung}  onChange={v => setBrand('samsung', v)} />
-            <MultiplierField label="Motorola" value={multipliers.brand.motorola} onChange={v => setBrand('motorola', v)} />
-            <MultiplierField label="Xiaomi"   value={multipliers.brand.xiaomi}   onChange={v => setBrand('xiaomi', v)} />
-            <MultiplierField label="Otros"    value={multipliers.brand.otros}    onChange={v => setBrand('otros', v)} />
-          </AccordionSection>
+            {/* Botones */}
+            <div className="space-y-2 pt-1">
+              <Button
+                onClick={handleSave}
+                className="w-full h-11 text-base font-semibold"
+                disabled={isUpdating}
+              >
+                {isUpdating ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Spinner size="sm" />
+                    Guardando...
+                  </span>
+                ) : (
+                  'Guardar Configuración'
+                )}
+              </Button>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+              >
+                Restaurar últimos valores guardados
+              </button>
+            </div>
+          </CardContent>
+        </Card>
 
-          </div>{/* end extras wrapper */}
+        {/* Tarjeta 2: Reglas Especiales CATEA */}
+        <Card className="shadow-lg border-amber-200 dark:border-amber-800/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              Reglas Especiales
+              <span className="text-xs font-medium px-2 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded-full ml-1">
+                Estándar CATEA
+              </span>
+            </CardTitle>
+            <CardDescription>Ajustes basados en las recomendaciones del gremio argentino</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-start gap-4 p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60">
+              <ToggleSwitch
+                id="cateaToggle"
+                checked={formData.applyCateaModuleRule}
+                onChange={v => setFormData(f => ({ ...f, applyCateaModuleRule: v }))}
+              />
+              <div className="flex-1 min-w-0">
+                <label
+                  htmlFor="cateaToggle"
+                  className="text-sm font-semibold cursor-pointer select-none leading-snug"
+                >
+                  Regla para Cambio de Módulos
+                </label>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                  Aplica la recomendación oficial de CATEA para cambios de pantalla:{' '}
+                  <span className="font-mono font-semibold text-amber-700 dark:text-amber-300">
+                    (Costo del Repuesto × 2) + 10%
+                  </span>{' '}
+                  de margen de seguridad, ignorando el margen general.
+                </p>
+                <AnimatePresence>
+                  {formData.applyCateaModuleRule && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex items-center gap-1.5 mt-2.5 text-xs text-amber-700 dark:text-amber-300 font-medium">
+                        <Zap className="h-3.5 w-3.5 shrink-0" />
+                        Activa: se aplica en servicios con "pantalla" o "módulo" en el nombre.
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-          {/* -- Botonera -- */}
-          <div className="space-y-2 pt-2">
-            <Button
-              onClick={handleSave}
-              className="w-full h-11 text-base font-semibold"
-              disabled={isUpdating}
-            >
-              {isUpdating ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Spinner size="sm" />
-                  Guardando...
-                </span>
-              ) : (
-                'Guardar Cambios'
-              )}
-            </Button>
-            <button
-              onClick={handleReset}
-              className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
-            >
-              Restaurar valores por defecto
-            </button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* -- Columna Derecha: Simulador de Impacto -- */}
-      <Card className="shadow-lg bg-gradient-to-br from-white to-primary-50/30 dark:from-card dark:to-primary-950/10">
+      {/* ── Columna Derecha: Simulador Rápido ─────────────────────────────────── */}
+      <Card className="shadow-lg sticky top-4 bg-gradient-to-br from-white to-primary-50/30 dark:from-card dark:to-primary-950/10">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary-600" />
-            Simulador de Impacto
+            <Calculator className="h-5 w-5 text-primary-600" />
+            Simulador Rápido
           </CardTitle>
           <CardDescription>
-            Probá en vivo cómo tus multiplicadores afectan el precio antes de guardar
+            Probá en vivo cómo tus reglas afectan el precio antes de guardar
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
 
-          {/* -- Controles del simulador -- */}
-          <div className="grid grid-cols-2 gap-3 p-4 bg-muted/40 rounded-lg border border-input">
+          {/* Inputs del simulador */}
+          <div className="space-y-3 p-4 bg-muted/40 rounded-lg border border-input">
+            <SectionLabel icon={<Calculator className="h-3.5 w-3.5" />} text="Variables de prueba" />
 
-            {/* Servicio a simular */}
-            <div className="col-span-2">
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Servicio a simular</Label>
+            {/* Costo del Repuesto */}
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Costo del repuesto</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs pointer-events-none font-medium">$</div>
+                  <Input
+                    type="number"
+                    step={simCurrency === 'USD' ? 5 : 500}
+                    min="0"
+                    value={simPartCost}
+                    onChange={e => setSimPartCost(parseFloat(e.target.value) || 0)}
+                    className="pl-6 h-9 text-sm"
+                  />
+                </div>
+                <Select
+                  value={simCurrency}
+                  onValueChange={v => setSimCurrency(v as 'USD' | 'ARS')}
+                >
+                  <SelectTrigger className="w-20 h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="ARS">ARS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Selección de Servicio */}
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Tipo de servicio</Label>
               <Select
-                value={selectedServiceId}
-                onValueChange={setSelectedServiceId}
+                value={simServiceId}
+                onValueChange={setSimServiceId}
                 disabled={services.length === 0}
               >
                 <SelectTrigger className="h-9 text-sm">
                   <SelectValue placeholder={services.length === 0 ? 'Sin servicios configurados' : 'Selecciona un servicio'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {services.map((service) => (
+                  {services.map(service => (
                     <SelectItem key={service.id} value={service.id}>
-                      {service.name} — {service.hours} hrs
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Costo Repuesto Base */}
-            <div className="col-span-2">
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Costo Repuesto Base</Label>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs pointer-events-none">$</div>
-                <Input
-                  type="number"
-                  step="10"
-                  min="0"
-                  value={simState.partCostUSD}
-                  onChange={(e) =>
-                    setSimState(p => ({ ...p, partCostUSD: parseFloat(e.target.value) || 0 }))
-                  }
-                  className="pl-6 pr-16 h-9 text-sm"
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none font-medium">USD</div>
-              </div>
-            </div>
-
-            {/* Gama y Marca — solo en modo avanzado */}
-            <AnimatePresence initial={false}>
-              {advancedMode && (
-                <motion.div
-                  key="sim-advanced-selects"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.22, ease: 'easeInOut' }}
-                  className="col-span-2 overflow-hidden"
-                >
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Gama */}
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-1.5 block">
-                        Gama{' '}
-                        <span className="font-semibold text-primary-600 dark:text-primary-400">
-                          {simulation.tierMult}×
-                        </span>
-                      </Label>
-                      <Select
-                        value={simState.tier}
-                        onValueChange={(v) => setSimState(p => ({ ...p, tier: v as keyof TierMultipliers }))}
-                      >
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="premium">Premium</SelectItem>
-                          <SelectItem value="alta">Gama Alta</SelectItem>
-                          <SelectItem value="media">Gama Media</SelectItem>
-                          <SelectItem value="baja">Gama Baja</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Marca */}
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-1.5 block">
-                        Marca{' '}
-                        <span className="font-semibold text-primary-600 dark:text-primary-400">
-                          {simulation.brandMult}×
-                        </span>
-                      </Label>
-                      <Select
-                        value={simState.brand}
-                        onValueChange={(v) => setSimState(p => ({ ...p, brand: v as keyof BrandMultipliers }))}
-                      >
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="apple">Apple</SelectItem>
-                          <SelectItem value="samsung">Samsung</SelectItem>
-                          <SelectItem value="motorola">Motorola</SelectItem>
-                          <SelectItem value="xiaomi">Xiaomi</SelectItem>
-                          <SelectItem value="otros">Otros</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Tipo de Repuesto */}
-            <div className="col-span-2">
-              <Label className="text-xs text-muted-foreground mb-1.5 block">
-                Tipo de Repuesto{' '}
-                <span className="font-semibold text-primary-600 dark:text-primary-400">
-                  {simulation.partMult}×
-                </span>
-              </Label>
-              <Select
-                value={simState.partTypeId}
-                onValueChange={(v) => setSimState(p => ({ ...p, partTypeId: v }))}
-                disabled={partTypes.length === 0}
-              >
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder={partTypes.length === 0 ? 'Sin tipos configurados' : 'Selecciona un tipo'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {partTypes.map((pt) => (
-                    <SelectItem key={pt.id} value={pt.id}>
-                      {pt.name} — {pt.riskMultiplier}×
+                      {service.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -667,105 +472,115 @@ export function ConfigManager() {
             </div>
           </div>
 
-          {/* -- Desglose animado -- */}
+          {/* Badge de fórmula activa */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={simulation.useCatea ? 'catea' : 'standard'}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              transition={{ duration: 0.2 }}
+            >
+              {simulation.useCatea ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700">
+                  <ShieldCheck className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">Aplicando fórmula CATEA</p>
+                    <p className="text-[10px] text-amber-600/80 dark:text-amber-400/80 font-mono mt-0.5">
+                      (${simulation.partCostARS.toLocaleString('es-AR')} × 2) × 1.10
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/60 border border-input">
+                  <Info className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold">Fórmula estándar</p>
+                    <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                      Repuesto × (1 + {formData.defaultMargin}%) + Mano de Obra
+                    </p>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Desglose animado */}
           <motion.div
-            key={`${formData.hourlyRate}-${formData.margin}-${formData.usdRate}-${simState.tier}-${simState.brand}-${simState.partTypeId}-${simState.partCostUSD}-${selectedServiceId}`}
-            initial={{ opacity: 0, y: 10 }}
+            key={`${JSON.stringify(formData)}-${simPartCost}-${simCurrency}-${simServiceId}`}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-4"
+            transition={{ duration: 0.25 }}
+            className="space-y-3"
           >
-            {/* Ecuación Visual */}
-            <div className="space-y-3 pb-5 border-b-2 border-dashed border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between py-3 px-4 bg-white dark:bg-card rounded-lg shadow-sm">
-                <span className="text-sm text-muted-foreground">Costo Repuesto</span>
-                <span className="text-lg font-semibold tabular-nums">
+            <SectionLabel icon={<TrendingUp className="h-3.5 w-3.5" />} text="Desglose del precio" />
+
+            <div className="space-y-2">
+              {/* Costo repuesto */}
+              <div className="flex items-center justify-between py-2 px-3 bg-white dark:bg-card rounded-lg shadow-sm text-sm">
+                <span className="text-muted-foreground">Repuesto (pesificado)</span>
+                <span className="font-semibold tabular-nums">
                   <AnimatedNumber value={simulation.partCostARS} currency="ARS" />
                 </span>
               </div>
 
-              <div className="flex items-center justify-center">
-                <div className="text-2xl text-primary-600 font-bold">+</div>
-              </div>
-
-              <div className="flex items-center justify-between py-3 px-4 bg-white dark:bg-card rounded-lg shadow-sm">
-                <span className="text-sm text-muted-foreground">
-                  Ganancia ({formData.margin}%)
-                </span>
-                <span className="text-lg font-semibold tabular-nums text-green-600 dark:text-green-400">
-                  <AnimatedNumber value={simulation.marginAmount} currency="ARS" />
-                </span>
-              </div>
-
-              <div className="flex items-center justify-center">
-                <div className="text-2xl text-primary-600 font-bold">+</div>
-              </div>
-
-              <div className="flex items-center justify-between py-3 px-4 bg-white dark:bg-card rounded-lg shadow-sm">
-                <span className="text-sm text-muted-foreground">
-                  {advancedMode
-                    ? `Mano de Obra (${simulation.baseHours}h base × ${simulation.combinedRisk}x riesgo)`
-                    : `Mano de Obra (${simulation.baseHours}h base)`}
-                </span>
-                <span className="text-lg font-semibold tabular-nums">
-                  <AnimatedNumber value={simulation.laborCostARS} currency="ARS" />
-                </span>
-              </div>
+              {simulation.useCatea ? (
+                /* Desglose CATEA */
+                <>
+                  <div className="flex items-center justify-between py-2 px-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg shadow-sm text-sm border border-amber-200/60 dark:border-amber-800/40">
+                    <span className="text-muted-foreground">Labor CATEA (× 2)</span>
+                    <span className="font-semibold tabular-nums text-amber-700 dark:text-amber-300">
+                      <AnimatedNumber value={simulation.laborCostARS} currency="ARS" />
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 px-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg shadow-sm text-sm border border-amber-200/60 dark:border-amber-800/40">
+                    <span className="text-muted-foreground">Margen de seguridad (+10%)</span>
+                    <span className="font-semibold tabular-nums text-amber-700 dark:text-amber-300">
+                      <AnimatedNumber value={simulation.riskPremiumARS} currency="ARS" />
+                    </span>
+                  </div>
+                </>
+              ) : (
+                /* Desglose estándar */
+                <>
+                  <div className="flex items-center justify-between py-2 px-3 bg-white dark:bg-card rounded-lg shadow-sm text-sm">
+                    <span className="text-muted-foreground">Ganancia ({formData.defaultMargin}%)</span>
+                    <span className="font-semibold tabular-nums text-green-600 dark:text-green-400">
+                      <AnimatedNumber value={simulation.marginARS} currency="ARS" />
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 px-3 bg-white dark:bg-card rounded-lg shadow-sm text-sm">
+                    <span className="text-muted-foreground">Mano de obra mínima</span>
+                    <span className="font-semibold tabular-nums">
+                      <AnimatedNumber value={simulation.laborCostARS} currency="ARS" />
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Precio Final Grande */}
-            <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-              className="text-center py-8 px-4 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950/30 dark:to-primary-900/30 rounded-xl shadow-inner"
-            >
+            {/* Precio Final */}
+            <div className="text-center py-8 px-4 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950/30 dark:to-primary-900/30 rounded-xl shadow-inner mt-2">
               <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2 font-semibold">
                 Precio al Cliente
               </p>
               <motion.p
-                key={simulation.finalPrice}
-                initial={{ scale: 0.8, opacity: 0 }}
+                key={simulation.finalPriceARS}
+                initial={{ scale: 0.85, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
                 className="text-5xl font-bold text-primary-600 dark:text-primary-400 tabular-nums"
               >
-                <AnimatedNumber value={simulation.finalPrice} currency="ARS" />
+                <AnimatedNumber value={simulation.finalPriceARS} currency="ARS" />
               </motion.p>
-              <p className="text-xs text-muted-foreground mt-3">
+              <p className="text-xs text-muted-foreground mt-2">
                 Redondeado a la centena más cercana
-              </p>
-            </motion.div>
-
-            {/* Info Adicional — desglose de multiplicadores */}
-            <div className="pt-3 text-xs text-muted-foreground space-y-1.5 border-t">
-              {advancedMode ? (
-                <p className="flex justify-between">
-                  <span>Factor combinado:</span>
-                  <span className="font-medium tabular-nums">
-                    {simulation.tierMult} × {simulation.brandMult} × {simulation.partMult} ={' '}
-                    <span className="text-primary-600 dark:text-primary-400 font-semibold">
-                      {simulation.combinedRisk}×
-                    </span>
-                  </span>
-                </p>
-              ) : (
-                <p className="flex justify-between">
-                  <span>Modo:</span>
-                  <span className="font-medium text-muted-foreground">Sin ajuste por riesgo</span>
-                </p>
-              )}
-              <p className="flex justify-between">
-                <span>Horas de trabajo:</span>
-                <span className="font-medium">{simulation.baseHours}h</span>
-              </p>
-              <p className="text-[10px] text-muted-foreground/70 mt-3 italic">
-                * El precio cambia instantáneamente al editar valores
               </p>
             </div>
           </motion.div>
         </CardContent>
       </Card>
+
     </div>
   );
 }

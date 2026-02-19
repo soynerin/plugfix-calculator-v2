@@ -78,13 +78,13 @@ export function CalculatorForm() {
       return;
     }
 
-    const partTypeMultiplier = selectedPartType?.riskMultiplier ?? 1.0;
+    // Detectar si el servicio es un cambio de módulo/pantalla (activa regla CATEA si está habilitada)
+    const isModuleService = /pantalla|módulo|modulo|screen/i.test(selectedService.name);
 
     const breakdown = calculate({
       partCost: parseFloat(formData.partCost) || 0,
       currency: formData.currency,
-      laborHours: selectedService.hours,
-      riskFactor: Math.round(selectedModel.riskFactor * partTypeMultiplier * 100) / 100,
+      isModuleService,
     });
 
     if (breakdown) {

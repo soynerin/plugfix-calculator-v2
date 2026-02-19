@@ -44,12 +44,10 @@ export class SupabaseAdapter implements IDatabaseService {
     if (!error && !data) {
       await this.client.from('config').insert({
         user_id: userId,
-        hourly_rate: DEFAULT_CONFIG.hourlyRate,
-        margin: DEFAULT_CONFIG.margin,
         usd_rate: DEFAULT_CONFIG.usdRate,
-        tier_multipliers: DEFAULT_CONFIG.tierMultipliers,
-        brand_multipliers: DEFAULT_CONFIG.brandMultipliers,
-        part_multipliers: DEFAULT_CONFIG.partMultipliers,
+        default_margin: DEFAULT_CONFIG.defaultMargin,
+        minimum_labor_cost: DEFAULT_CONFIG.minimumLaborCost,
+        apply_catea_module_rule: DEFAULT_CONFIG.applyCateaModuleRule,
       });
     }
   }
@@ -518,12 +516,10 @@ export class SupabaseAdapter implements IDatabaseService {
         .from('config')
         .insert({
           user_id: userId,
-          hourly_rate: DEFAULT_CONFIG.hourlyRate,
-          margin: DEFAULT_CONFIG.margin,
           usd_rate: DEFAULT_CONFIG.usdRate,
-          tier_multipliers: DEFAULT_CONFIG.tierMultipliers,
-          brand_multipliers: DEFAULT_CONFIG.brandMultipliers,
-          part_multipliers: DEFAULT_CONFIG.partMultipliers,
+          default_margin: DEFAULT_CONFIG.defaultMargin,
+          minimum_labor_cost: DEFAULT_CONFIG.minimumLaborCost,
+          apply_catea_module_rule: DEFAULT_CONFIG.applyCateaModuleRule,
         })
         .select()
         .single();
@@ -538,12 +534,10 @@ export class SupabaseAdapter implements IDatabaseService {
   async updateConfig(configData: Partial<PriceConfig>): Promise<PriceConfig> {
     const userId = await this.getCurrentUserId();
     const updateData: Record<string, any> = {};
-    if (configData.hourlyRate !== undefined) updateData.hourly_rate = configData.hourlyRate;
-    if (configData.margin !== undefined) updateData.margin = configData.margin;
-    if (configData.usdRate !== undefined) updateData.usd_rate = configData.usdRate;
-    if (configData.tierMultipliers !== undefined) updateData.tier_multipliers = configData.tierMultipliers;
-    if (configData.brandMultipliers !== undefined) updateData.brand_multipliers = configData.brandMultipliers;
-    if (configData.partMultipliers !== undefined) updateData.part_multipliers = configData.partMultipliers;
+    if (configData.usdRate !== undefined)             updateData.usd_rate = configData.usdRate;
+    if (configData.defaultMargin !== undefined)        updateData.default_margin = configData.defaultMargin;
+    if (configData.minimumLaborCost !== undefined)     updateData.minimum_labor_cost = configData.minimumLaborCost;
+    if (configData.applyCateaModuleRule !== undefined) updateData.apply_catea_module_rule = configData.applyCateaModuleRule;
 
     const { data, error } = await this.client
       .from('config')
@@ -713,12 +707,10 @@ export class SupabaseAdapter implements IDatabaseService {
     await this.client
       .from('config')
       .update({
-        hourly_rate: DEFAULT_CONFIG.hourlyRate,
-        margin: DEFAULT_CONFIG.margin,
         usd_rate: DEFAULT_CONFIG.usdRate,
-        tier_multipliers: DEFAULT_CONFIG.tierMultipliers,
-        brand_multipliers: DEFAULT_CONFIG.brandMultipliers,
-        part_multipliers: DEFAULT_CONFIG.partMultipliers,
+        default_margin: DEFAULT_CONFIG.defaultMargin,
+        minimum_labor_cost: DEFAULT_CONFIG.minimumLaborCost,
+        apply_catea_module_rule: DEFAULT_CONFIG.applyCateaModuleRule,
       })
       .eq('user_id', userId);
   }
@@ -788,9 +780,10 @@ export class SupabaseAdapter implements IDatabaseService {
     // Restore config
     if (backup.data.config) {
       await this.updateConfig({
-        hourlyRate: backup.data.config.hourlyRate,
-        margin: backup.data.config.margin,
-        usdRate: backup.data.config.usdRate
+        usdRate: backup.data.config.usdRate,
+        defaultMargin: backup.data.config.defaultMargin,
+        minimumLaborCost: backup.data.config.minimumLaborCost,
+        applyCateaModuleRule: backup.data.config.applyCateaModuleRule,
       });
     }
 
@@ -876,13 +869,11 @@ export class SupabaseAdapter implements IDatabaseService {
 
   private mapConfigFromDB(data: any): PriceConfig {
     return {
-      id: data.user_id,   // user_id es la PK en la nueva estructura
-      hourlyRate: data.hourly_rate,
-      margin: data.margin,
-      usdRate: data.usd_rate,
-      tierMultipliers:  data.tier_multipliers  ?? DEFAULT_CONFIG.tierMultipliers,
-      brandMultipliers: data.brand_multipliers ?? DEFAULT_CONFIG.brandMultipliers,
-      partMultipliers:  data.part_multipliers  ?? DEFAULT_CONFIG.partMultipliers,
+      id: data.user_id,
+      usdRate:              data.usd_rate,
+      defaultMargin:        data.default_margin,
+      minimumLaborCost:     data.minimum_labor_cost     ?? DEFAULT_CONFIG.minimumLaborCost,
+      applyCateaModuleRule: data.apply_catea_module_rule ?? DEFAULT_CONFIG.applyCateaModuleRule,
       ...(data.updated_at && { updatedAt: new Date(data.updated_at) })
     };
   }
