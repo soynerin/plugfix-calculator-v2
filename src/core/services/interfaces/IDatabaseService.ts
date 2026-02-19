@@ -35,6 +35,7 @@ export interface IDatabaseService {
   addService(service: Omit<Service, 'id'>): Promise<Service>;
   updateService(id: string, data: Partial<Service>): Promise<Service>;
   deleteService(id: string): Promise<void>;
+  bulkAddServices(services: Omit<Service, 'id'>[]): Promise<BulkImportResult>;
 
   // ============================================
   // CONFIG

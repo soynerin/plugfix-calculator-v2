@@ -392,6 +392,28 @@ export class SupabaseAdapter implements IDatabaseService {
     if (error) throw new Error(`Failed to delete service: ${error.message}`);
   }
 
+  async bulkAddServices(services: Omit<Service, 'id'>[]): Promise<BulkImportResult> {
+    const userId = await this.getCurrentUserId();
+
+    const rows = services.map(s => ({
+      user_id: userId,
+      name: s.name,
+      hours: s.hours,
+      description: s.description || null,
+    }));
+
+    const { error } = await this.client.from('services').insert(rows);
+
+    if (error) throw new Error(`Failed to bulk import services: ${error.message}`);
+
+    return {
+      totalProcessed: services.length,
+      added: services.length,
+      skipped: 0,
+      errors: 0,
+    };
+  }
+
   // ============================================
   // CONFIG (Multi-Tenant: una fila por usuario)
   // ============================================

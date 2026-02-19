@@ -37,6 +37,14 @@ export function useServices() {
     }
   });
 
+  // Importar servicios masivamente (plantilla predeterminada)
+  const bulkImportServices = useMutation({
+    mutationFn: (services: Omit<Service, 'id'>[]) => db.bulkAddServices(services),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+    },
+  });
+
   // Actualizar servicio
   const updateService = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Service> }) =>
@@ -58,9 +66,12 @@ export function useServices() {
     services: services || [],
     isLoading,
     isAdding: addService.isPending,
+    isImporting: bulkImportServices.isPending,
+    isUpdating: updateService.isPending,
     deletingServiceId: deleteService.isPending ? deleteService.variables : undefined,
     error,
     addService: addService.mutate,
+    bulkImportServices: bulkImportServices.mutateAsync,
     updateService: updateService.mutate,
     deleteService: deleteService.mutate,
   };
