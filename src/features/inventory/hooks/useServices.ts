@@ -58,6 +58,7 @@ export function useServices() {
     services: services || [],
     isLoading,
     isAdding: addService.isPending,
+    deletingServiceId: deleteService.isPending ? deleteService.variables : undefined,
     error,
     addService: addService.mutate,
     updateService: updateService.mutate,

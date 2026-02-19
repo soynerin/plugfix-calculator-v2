@@ -56,7 +56,7 @@ export function HistoryViewer() {
 
   const { brands } = useBrands();
   const { models } = useModels();
-  const { history, isLoading, deleteHistory, exportHistory } = useHistory(appliedFilters);
+  const { history, isLoading, deletingHistoryId, deleteHistory, exportHistory } = useHistory(appliedFilters);
   const { confirm } = useConfirm();
   const [selectedEntry, setSelectedEntry] = useState<RepairHistory | null>(null);
 
@@ -366,6 +366,7 @@ export function HistoryViewer() {
                         </div>
                         <button
                           onClick={(e) => handleDelete(entry.id, entry.clientName || 'este cliente', e)}
+                          disabled={deletingHistoryId === entry.id}
                           className="
                             inline-flex items-center justify-center
                             h-10 w-10 
@@ -376,10 +377,15 @@ export function HistoryViewer() {
                             dark:hover:bg-red-950/50
                             transition-colors
                             active:scale-95
+                            disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
                           "
                           title="Eliminar"
                         >
-                          <Trash2 className="h-5 w-5" />
+                          {deletingHistoryId === entry.id ? (
+                            <Spinner size="sm" variant="danger" />
+                          ) : (
+                            <Trash2 className="h-5 w-5" />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -431,6 +437,7 @@ export function HistoryViewer() {
                             <TableCell className="text-center py-4">
                               <button
                                 onClick={(e) => handleDelete(entry.id, entry.clientName || 'este cliente', e)}
+                                disabled={deletingHistoryId === entry.id}
                                 className="
                                   inline-flex items-center justify-center
                                   h-8 w-8 
@@ -440,10 +447,15 @@ export function HistoryViewer() {
                                   hover:bg-red-50 
                                   dark:hover:bg-red-950/50
                                   transition-colors
+                                  disabled:opacity-50 disabled:cursor-not-allowed
                                 "
                                 title="Eliminar"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                {deletingHistoryId === entry.id ? (
+                                  <Spinner size="sm" variant="danger" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
                               </button>
                             </TableCell>
                           </TableRow>

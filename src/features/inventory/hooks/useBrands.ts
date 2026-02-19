@@ -70,6 +70,7 @@ export function useBrands() {
     brands: brands || [],
     isLoading,
     isAdding: addBrand.isPending,
+    deletingBrandId: deleteBrand.isPending ? deleteBrand.variables : undefined,
     error,
     addBrand: addBrand.mutate,
     deleteBrand: deleteBrand.mutate,

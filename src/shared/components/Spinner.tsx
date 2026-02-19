@@ -3,6 +3,8 @@ import { cn } from '@/shared/utils';
 interface SpinnerProps {
   /** Visual size: 'sm' for buttons, 'md' default, 'lg' for full-view loaders */
   size?: 'sm' | 'md' | 'lg';
+  /** Arc color variant. Defaults to brand primary (teal). Use 'danger' for delete actions. */
+  variant?: 'primary' | 'danger';
   className?: string;
 }
 
@@ -12,12 +14,19 @@ const sizeMap: Record<NonNullable<SpinnerProps['size']>, string> = {
   lg: 'w-10 h-10',
 };
 
+const arcColorMap: Record<NonNullable<SpinnerProps['variant']>, string> = {
+  primary: 'stroke-primary-500',
+  danger: 'stroke-red-400',
+};
+
 /**
  * On-brand loading spinner.
- * Soft gray circular track with a 270° teal (primary-500) arc.
- * Use size="sm" inside buttons, size="lg" for full-view loading states.
+ * Soft gray circular track with a colored arc, using animate-spin.
+ * - size="sm"  → inside buttons
+ * - size="lg"  → full-view loading states
+ * - variant="danger" → red arc for delete actions
  */
-export function Spinner({ size = 'md', className }: SpinnerProps) {
+export function Spinner({ size = 'md', variant = 'primary', className }: SpinnerProps) {
   return (
     <svg
       className={cn('animate-spin shrink-0', sizeMap[size], className)}
@@ -33,12 +42,12 @@ export function Spinner({ size = 'md', className }: SpinnerProps) {
         strokeWidth="3"
         className="stroke-gray-200 dark:stroke-gray-700"
       />
-      {/* Teal arc – 270° clockwise from top (12,2) to left (2,12) */}
+      {/* 270° arc, color controlled by variant */}
       <path
         d="M12 2 A10 10 0 1 1 2 12"
         strokeWidth="3"
         strokeLinecap="round"
-        className="stroke-primary-500"
+        className={arcColorMap[variant]}
       />
     </svg>
   );

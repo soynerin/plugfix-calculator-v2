@@ -73,6 +73,7 @@ export function useModels(brandId?: string) {
     isLoading,
     isAdding: addModel.isPending,
     isUpdating: updateModel.isPending,
+    deletingModelId: deleteModel.isPending ? deleteModel.variables : undefined,
     error,
     addModel: addModel.mutate,
     updateModel: updateModel.mutate,

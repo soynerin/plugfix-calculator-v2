@@ -11,7 +11,7 @@ import { Spinner } from '@/shared/components/Spinner';
 import { EmptyState } from '@/shared/ui/empty-state';
 
 export function ServiceManager() {
-  const { services, isLoading, isAdding, addService, deleteService } = useServices();
+  const { services, isLoading, isAdding, deletingServiceId, addService, deleteService } = useServices();
   const { confirm } = useConfirm();
   const [formData, setFormData] = useState({
     name: '',
@@ -172,10 +172,15 @@ export function ServiceManager() {
                   {/* Delete Button */}
                   <button
                     onClick={() => handleDeleteService(service.id, service.name)}
-                    className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors duration-200"
+                    disabled={deletingServiceId === service.id}
+                    className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label={`Eliminar ${service.name}`}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    {deletingServiceId === service.id ? (
+                      <Spinner size="sm" variant="danger" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </CardContent>

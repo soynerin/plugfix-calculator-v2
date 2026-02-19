@@ -10,7 +10,7 @@ import { Spinner } from '@/shared/components/Spinner';
 import { Plus, Trash2, Tag, Upload } from 'lucide-react';
 
 export function BrandManager() {
-  const { brands, isLoading, isAdding, addBrand, deleteBrand, bulkAddBrands } = useBrands();
+  const { brands, isLoading, isAdding, deletingBrandId, addBrand, deleteBrand, bulkAddBrands } = useBrands();
   const { confirm } = useConfirm();
   const [newBrandName, setNewBrandName] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
@@ -141,10 +141,15 @@ export function BrandManager() {
                 {/* Delete Button */}
                 <button
                   onClick={() => handleDeleteBrand(brand.id, brand.name)}
-                  className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors duration-200"
+                  disabled={deletingBrandId === brand.id}
+                  className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label={`Eliminar ${brand.name}`}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  {deletingBrandId === brand.id ? (
+                    <Spinner size="sm" variant="danger" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             ))}

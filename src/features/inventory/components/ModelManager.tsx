@@ -38,7 +38,7 @@ const RISK_FACTOR_BY_CATEGORY: Record<string, number> = {
 
 export function ModelManager() {
   const { brands } = useBrands();
-  const { models, isLoading, isAdding, isUpdating, addModel, updateModel, deleteModel, bulkAddModels } = useModels();
+  const { models, isLoading, isAdding, isUpdating, deletingModelId, addModel, updateModel, deleteModel, bulkAddModels } = useModels();
   const { confirm } = useConfirm();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'year-desc' | 'year-asc' | 'name-asc' | 'name-desc' | 'risk-desc' | 'risk-asc'>('year-desc');
@@ -559,10 +559,15 @@ export function ModelManager() {
                       </button>
                       <button
                         onClick={() => handleDeleteModel(model.id, model.name, brand?.name || 'Marca desconocida')}
-                        className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors duration-200"
+                        disabled={deletingModelId === model.id}
+                        className="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label={`Eliminar ${model.name}`}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {deletingModelId === model.id ? (
+                          <Spinner size="sm" variant="danger" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                   </div>

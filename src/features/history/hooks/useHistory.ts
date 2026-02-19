@@ -47,6 +47,7 @@ export function useHistory(filters?: HistoryFilters) {
     history: history || [],
     isLoading,
     isAdding: addHistory.isPending,
+    deletingHistoryId: deleteHistory.isPending ? deleteHistory.variables : undefined,
     error,
     addHistory: addHistory.mutate,
     deleteHistory: deleteHistory.mutate,
