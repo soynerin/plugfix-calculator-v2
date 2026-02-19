@@ -1,5 +1,5 @@
 import type { IDatabaseService, HistoryFilters, BulkImportResult } from '../interfaces/IDatabaseService';
-import type { Brand, RepairModel, Service, PriceConfig, RepairHistory } from '@/core/domain/models';
+import type { Brand, RepairModel, Service, PartType, PriceConfig, RepairHistory } from '@/core/domain/models';
 import { DEFAULT_CONFIG } from '@/core/domain/models/PriceConfig';
 import { getSupabaseClient } from '@/lib/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -415,6 +415,85 @@ export class SupabaseAdapter implements IDatabaseService {
   }
 
   // ============================================
+  // PART TYPES
+  // ============================================
+
+  async getAllPartTypes(): Promise<PartType[]> {
+    const { data, error } = await this.client
+      .from('part_types')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) throw new Error(`Failed to fetch part types: ${error.message}`);
+
+    return (data || []).map(this.mapPartTypeFromDB);
+  }
+
+  async addPartType(partType: Omit<PartType, 'id'>): Promise<PartType> {
+    const userId = await this.getCurrentUserId();
+    const { data, error } = await this.client
+      .from('part_types')
+      .insert({
+        user_id: userId,
+        name: partType.name,
+        risk_multiplier: partType.riskMultiplier,
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to add part type: ${error.message}`);
+
+    return this.mapPartTypeFromDB(data);
+  }
+
+  async updatePartType(id: string, partTypeData: Partial<PartType>): Promise<PartType> {
+    const updateData: Record<string, any> = {};
+    if (partTypeData.name !== undefined) updateData.name = partTypeData.name;
+    if (partTypeData.riskMultiplier !== undefined) updateData.risk_multiplier = partTypeData.riskMultiplier;
+
+    const { data, error } = await this.client
+      .from('part_types')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to update part type: ${error.message}`);
+
+    return this.mapPartTypeFromDB(data);
+  }
+
+  async deletePartType(id: string): Promise<void> {
+    const { error } = await this.client
+      .from('part_types')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw new Error(`Failed to delete part type: ${error.message}`);
+  }
+
+  async bulkAddPartTypes(partTypes: Omit<PartType, 'id'>[]): Promise<BulkImportResult> {
+    const userId = await this.getCurrentUserId();
+
+    const rows = partTypes.map(p => ({
+      user_id: userId,
+      name: p.name,
+      risk_multiplier: p.riskMultiplier,
+    }));
+
+    const { error } = await this.client.from('part_types').insert(rows);
+
+    if (error) throw new Error(`Failed to bulk import part types: ${error.message}`);
+
+    return {
+      totalProcessed: partTypes.length,
+      added: partTypes.length,
+      skipped: 0,
+      errors: 0,
+    };
+  }
+
+  // ============================================
   // CONFIG (Multi-Tenant: una fila por usuario)
   // ============================================
 
@@ -780,6 +859,16 @@ export class SupabaseAdapter implements IDatabaseService {
       name: data.name,
       hours: data.hours,
       ...(data.description && { description: data.description }),
+      ...(data.created_at && { createdAt: new Date(data.created_at) }),
+      ...(data.updated_at && { updatedAt: new Date(data.updated_at) })
+    };
+  }
+
+  private mapPartTypeFromDB(data: any): PartType {
+    return {
+      id: data.id,
+      name: data.name,
+      riskMultiplier: data.risk_multiplier,
       ...(data.created_at && { createdAt: new Date(data.created_at) }),
       ...(data.updated_at && { updatedAt: new Date(data.updated_at) })
     };

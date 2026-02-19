@@ -4,6 +4,7 @@ import { Calculator, Receipt, AlertTriangle } from 'lucide-react';
 import { useBrands } from '@/features/inventory/hooks/useBrands';
 import { useModels } from '@/features/inventory/hooks/useModels';
 import { useServices } from '@/features/inventory/hooks/useServices';
+import { usePartTypes } from '@/features/inventory/hooks/usePartTypes';
 import { usePriceCalculator } from '../hooks/usePriceCalculator';
 import { useHistory } from '@/features/history/hooks/useHistory';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -28,6 +29,7 @@ export function CalculatorForm() {
   const { brands } = useBrands();
   const { models } = useModels();
   const { services } = useServices();
+  const { partTypes } = usePartTypes();
   const { calculate, config } = usePriceCalculator();
   const { addHistory, isAdding: isSavingHistory } = useHistory();
   const { toast } = useToast();
@@ -37,6 +39,7 @@ export function CalculatorForm() {
     brandId: '',
     modelId: '',
     serviceId: '',
+    partTypeId: '',
     partCost: '',
     currency: 'USD' as 'ARS' | 'USD',
     diagnosis: '',
@@ -57,6 +60,7 @@ export function CalculatorForm() {
   const selectedModel = models.find((m) => m.id === formData.modelId);
   const selectedService = services.find((s) => s.id === formData.serviceId);
   const selectedBrand = brands.find((b) => b.id === formData.brandId);
+  const selectedPartType = partTypes.find((p) => p.id === formData.partTypeId);
 
   // Validar si todos los campos requeridos están completos
   const isFormValid = 
@@ -76,11 +80,13 @@ export function CalculatorForm() {
       return;
     }
 
+    const partTypeMultiplier = selectedPartType?.riskMultiplier ?? 1.0;
+
     const breakdown = calculate({
       partCost: parseFloat(formData.partCost),
       currency: formData.currency,
       laborHours: selectedService.hours,
-      riskFactor: selectedModel.riskFactor,
+      riskFactor: Math.round(selectedModel.riskFactor * partTypeMultiplier * 100) / 100,
     });
 
     if (breakdown) {
@@ -128,6 +134,7 @@ export function CalculatorForm() {
       brandId: '',
       modelId: '',
       serviceId: '',
+      partTypeId: '',
       partCost: '',
       currency: 'USD',
       diagnosis: '',
@@ -225,6 +232,34 @@ export function CalculatorForm() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div>
+            <Label>
+              Tipo de Repuesto{' '}
+              <span className="text-muted-foreground font-normal">(Opcional)</span>
+            </Label>
+            <Select
+              value={formData.partTypeId}
+              onValueChange={(value) => setFormData({ ...formData, partTypeId: value })}
+              disabled={partTypes.length === 0}
+            >
+              <SelectTrigger className="min-h-[44px]">
+                <SelectValue placeholder={partTypes.length === 0 ? 'Sin tipos configurados' : 'Selecciona un tipo de repuesto'} />
+              </SelectTrigger>
+              <SelectContent>
+                {partTypes.map((pt) => (
+                  <SelectItem key={pt.id} value={pt.id}>
+                    {pt.name} — {pt.riskMultiplier}×
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedPartType && selectedPartType.riskMultiplier !== 1.0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Multiplicador de riesgo: {selectedPartType.riskMultiplier}×
+              </p>
+            )}
           </div>
 
           {/* Diagnóstico opcional */}

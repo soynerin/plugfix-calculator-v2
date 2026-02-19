@@ -21,6 +21,7 @@ import { CalculatorForm } from '@/features/calculator/components/CalculatorForm'
 import { BrandManager } from '@/features/inventory/components/BrandManager';
 import { ModelManager } from '@/features/inventory/components/ModelManager';
 import { ServiceManager } from '@/features/inventory/components/ServiceManager';
+import { PartTypeManager } from '@/features/inventory/components/PartTypeManager';
 import { ConfigManager } from '@/features/inventory/components/ConfigManager';
 import { HistoryViewer } from '@/features/history/components/HistoryViewer';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
@@ -97,8 +98,8 @@ function MainLayout() {
           <TabsList
             className={`hidden md:grid w-full lg:w-auto ${
               isAdmin
-                ? 'grid-cols-3 lg:grid-cols-6'
-                : 'grid-cols-2 lg:grid-cols-4'
+                ? 'grid-cols-3 lg:grid-cols-7'
+                : 'grid-cols-2 lg:grid-cols-5'
             }`}
           >
             <TabsTrigger value="calculator">🧮 Calculadora</TabsTrigger>
@@ -106,6 +107,7 @@ function MainLayout() {
             {isAdmin && <TabsTrigger value="brands">🏷️ Marcas</TabsTrigger>}
             {isAdmin && <TabsTrigger value="models">📱 Modelos</TabsTrigger>}
             <TabsTrigger value="services">🔧 Servicios</TabsTrigger>
+            <TabsTrigger value="parts">📦 Repuestos</TabsTrigger>
             <TabsTrigger value="config">⚙️ Config</TabsTrigger>
           </TabsList>
 
@@ -175,6 +177,20 @@ function MainLayout() {
             >
               <div className="grid gap-6">
                 <ServiceManager />
+              </div>
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="parts" className="space-y-4">
+            <motion.div
+              key="parts"
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              transition={pageTransition}
+            >
+              <div className="grid gap-6">
+                <PartTypeManager />
               </div>
             </motion.div>
           </TabsContent>

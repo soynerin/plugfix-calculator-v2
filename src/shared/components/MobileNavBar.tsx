@@ -1,4 +1,4 @@
-import { Calculator, ScrollText, Tag, Smartphone, Settings, Wrench } from 'lucide-react';
+import { Calculator, ScrollText, Tag, Smartphone, Settings, Wrench, Package } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { useAuth } from '@/features/auth';
 
@@ -12,12 +12,13 @@ export function MobileNavBar({ activeTab, onTabChange }: MobileNavBarProps) {
   const isAdmin = role === 'admin';
 
   const allNavItems = [
-    { id: 'calculator', icon: Calculator, label: 'Calc',     adminOnly: false },
+    { id: 'calculator', icon: Calculator, label: 'Calc',      adminOnly: false },
     { id: 'history',    icon: ScrollText, label: 'Historial', adminOnly: false },
-    { id: 'brands',     icon: Tag,        label: 'Marcas',   adminOnly: true  },
-    { id: 'models',     icon: Smartphone, label: 'Modelos',  adminOnly: true  },
-    { id: 'services',   icon: Wrench,     label: 'Servicios',adminOnly: false },
-    { id: 'config',     icon: Settings,   label: 'Config',   adminOnly: false },
+    { id: 'brands',     icon: Tag,        label: 'Marcas',    adminOnly: true  },
+    { id: 'models',     icon: Smartphone, label: 'Modelos',   adminOnly: true  },
+    { id: 'services',   icon: Wrench,     label: 'Servicios', adminOnly: false },
+    { id: 'parts',      icon: Package,    label: 'Repuestos', adminOnly: false },
+    { id: 'config',     icon: Settings,   label: 'Config',    adminOnly: false },
   ];
 
   const navItems = allNavItems.filter((item) => !item.adminOnly || isAdmin);

@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useConfig } from '@/features/inventory/hooks/useConfig';
 import { useDolarBlue } from '@/features/inventory/hooks/useDolarBlue';
 import { useServices } from '@/features/inventory/hooks/useServices';
+import { usePartTypes } from '@/features/inventory/hooks/usePartTypes';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -15,14 +16,14 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import {
   DollarSign, TrendingUp, Percent, Sparkles, RefreshCw,
-  ChevronDown, Layers, Smartphone, Wrench, Info, Zap,
+  ChevronDown, Layers, Smartphone, Info, Zap,
 } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 import { useToast } from '@/shared/hooks/use-toast';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DEFAULT_CONFIG } from '@/core/domain/models/PriceConfig';
-import type { TierMultipliers, BrandMultipliers, PartMultipliers } from '@/core/domain/models/PriceConfig';
+import type { TierMultipliers, BrandMultipliers } from '@/core/domain/models/PriceConfig';
 
 // --- Stepper input for multiplier values --------------------------------------
 interface MultiplierFieldProps {
@@ -132,6 +133,7 @@ export function ConfigManager() {
   const { toast } = useToast();
   const { isLoading: isDolarBlueLoading, refetch: refetchDolarBlue } = useDolarBlue();
   const { services } = useServices();
+  const { partTypes } = usePartTypes();
 
   const [formData, setFormData] = useState({
     hourlyRate: '13000',
@@ -142,14 +144,13 @@ export function ConfigManager() {
   const [multipliers, setMultipliers] = useState({
     tier:  { ...DEFAULT_CONFIG.tierMultipliers },
     brand: { ...DEFAULT_CONFIG.brandMultipliers },
-    part:  { ...DEFAULT_CONFIG.partMultipliers },
   });
 
   const [simState, setSimState] = useState({
     partCostUSD: 100,
-    tier:  'media'  as keyof TierMultipliers,
-    brand: 'otros'  as keyof BrandMultipliers,
-    part:  'pantalla' as keyof PartMultipliers,
+    tier:       'media' as keyof TierMultipliers,
+    brand:      'otros' as keyof BrandMultipliers,
+    partTypeId: '',
   });
   const [selectedServiceId, setSelectedServiceId] = useState('');
 
@@ -183,7 +184,6 @@ export function ConfigManager() {
       setMultipliers({
         tier:  { ...DEFAULT_CONFIG.tierMultipliers,  ...config.tierMultipliers },
         brand: { ...DEFAULT_CONFIG.brandMultipliers, ...config.brandMultipliers },
-        part:  { ...DEFAULT_CONFIG.partMultipliers,  ...config.partMultipliers },
       });
     }
   }, [config]);
@@ -196,7 +196,6 @@ export function ConfigManager() {
         usdRate: parseFloat(formData.usdRate),
         tierMultipliers:  multipliers.tier,
         brandMultipliers: multipliers.brand,
-        partMultipliers:  multipliers.part,
       });
       toast({
         title: '✅ Configuración guardada',
@@ -222,7 +221,6 @@ export function ConfigManager() {
       setMultipliers({
         tier:  { ...DEFAULT_CONFIG.tierMultipliers,  ...config.tierMultipliers },
         brand: { ...DEFAULT_CONFIG.brandMultipliers, ...config.brandMultipliers },
-        part:  { ...DEFAULT_CONFIG.partMultipliers,  ...config.partMultipliers },
       });
       toast({ title: 'Valores restaurados', description: 'Se han restaurado los últimos valores guardados' });
     }
@@ -253,8 +251,13 @@ export function ConfigManager() {
     setMultipliers(p => ({ ...p, tier:  { ...p.tier,  [key]: val } }));
   const setBrand = (key: keyof BrandMultipliers, val: number) =>
     setMultipliers(p => ({ ...p, brand: { ...p.brand, [key]: val } }));
-  const setPart  = (key: keyof PartMultipliers,  val: number) =>
-    setMultipliers(p => ({ ...p, part:  { ...p.part,  [key]: val } }));
+
+  // Set default partType when list first loads
+  useEffect(() => {
+    if (partTypes.length > 0 && !simState.partTypeId) {
+      setSimState(p => ({ ...p, partTypeId: partTypes[0]!.id }));
+    }
+  }, [partTypes, simState.partTypeId]);
 
   // Simulación en tiempo real — usa los valores del formulario y los controles del simulador
   const simulation = useMemo(() => {
@@ -268,7 +271,9 @@ export function ConfigManager() {
 
     const tierMult  = multipliers.tier[simState.tier];
     const brandMult = multipliers.brand[simState.brand];
-    const partMult  = multipliers.part[simState.part];
+    const selectedPartType = partTypes.find(p => p.id === simState.partTypeId);
+    const partMult  = selectedPartType?.riskMultiplier ?? 1.0;
+
     const combinedRisk = advancedMode
       ? Math.round(tierMult * brandMult * partMult * 100) / 100
       : 1;
@@ -292,7 +297,7 @@ export function ConfigManager() {
       partMult,
       combinedRisk,
     };
-  }, [formData.hourlyRate, formData.margin, formData.usdRate, simState, multipliers, advancedMode, services, selectedServiceId]);
+  }, [formData.hourlyRate, formData.margin, formData.usdRate, simState, multipliers, advancedMode, services, selectedServiceId, partTypes]);
 
   if (isLoading) {
     return (
@@ -486,23 +491,6 @@ export function ConfigManager() {
             <MultiplierField label="Otros"    value={multipliers.brand.otros}    onChange={v => setBrand('otros', v)} />
           </AccordionSection>
 
-          {/* -- Sección 4: Extra por Tipo de Repuesto -- */}
-          <AccordionSection
-            icon={<Wrench className="h-4 w-4" />}
-            title="Extra por Tipo de Repuesto"
-            badge="Tipo"
-            isOpen={openSections.has('part')}
-            onToggle={() => toggleSection('part')}
-          >
-            <p className="text-xs text-muted-foreground pb-2">
-              Ajusta el costo según el tipo de repuesto intervenido y su riesgo de instalación.
-            </p>
-            <MultiplierField label="Microelectrónica / Placa" value={multipliers.part.microelectronica} onChange={v => setPart('microelectronica', v)} />
-            <MultiplierField label="Pantalla"                 value={multipliers.part.pantalla}         onChange={v => setPart('pantalla', v)} />
-            <MultiplierField label="Pin de Carga"             value={multipliers.part.pin_carga}        onChange={v => setPart('pin_carga', v)} />
-            <MultiplierField label="Batería"                  value={multipliers.part.bateria}          onChange={v => setPart('bateria', v)} />
-          </AccordionSection>
-
           </div>{/* end extras wrapper */}
 
           {/* -- Botonera -- */}
@@ -661,17 +649,19 @@ export function ConfigManager() {
                 </span>
               </Label>
               <Select
-                value={simState.part}
-                onValueChange={(v) => setSimState(p => ({ ...p, part: v as keyof PartMultipliers }))}
+                value={simState.partTypeId}
+                onValueChange={(v) => setSimState(p => ({ ...p, partTypeId: v }))}
+                disabled={partTypes.length === 0}
               >
                 <SelectTrigger className="h-9 text-sm">
-                  <SelectValue />
+                  <SelectValue placeholder={partTypes.length === 0 ? 'Sin tipos configurados' : 'Selecciona un tipo'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="microelectronica">Microelectrónica / Placa</SelectItem>
-                  <SelectItem value="pantalla">Pantalla</SelectItem>
-                  <SelectItem value="pin_carga">Pin de Carga</SelectItem>
-                  <SelectItem value="bateria">Batería</SelectItem>
+                  {partTypes.map((pt) => (
+                    <SelectItem key={pt.id} value={pt.id}>
+                      {pt.name} — {pt.riskMultiplier}×
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -679,7 +669,7 @@ export function ConfigManager() {
 
           {/* -- Desglose animado -- */}
           <motion.div
-            key={`${formData.hourlyRate}-${formData.margin}-${formData.usdRate}-${simState.tier}-${simState.brand}-${simState.part}-${simState.partCostUSD}-${selectedServiceId}`}
+            key={`${formData.hourlyRate}-${formData.margin}-${formData.usdRate}-${simState.tier}-${simState.brand}-${simState.partTypeId}-${simState.partCostUSD}-${selectedServiceId}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}

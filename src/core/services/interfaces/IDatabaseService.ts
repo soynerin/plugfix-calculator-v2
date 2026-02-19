@@ -1,4 +1,4 @@
-import type { Brand, RepairModel, Service, PriceConfig, RepairHistory } from '@/core/domain/models';
+import type { Brand, RepairModel, Service, PartType, PriceConfig, RepairHistory } from '@/core/domain/models';
 
 /**
  * Interfaz principal del servicio de base de datos
@@ -36,6 +36,15 @@ export interface IDatabaseService {
   updateService(id: string, data: Partial<Service>): Promise<Service>;
   deleteService(id: string): Promise<void>;
   bulkAddServices(services: Omit<Service, 'id'>[]): Promise<BulkImportResult>;
+
+  // ============================================
+  // PART TYPES
+  // ============================================
+  getAllPartTypes(): Promise<PartType[]>;
+  addPartType(partType: Omit<PartType, 'id'>): Promise<PartType>;
+  updatePartType(id: string, data: Partial<PartType>): Promise<PartType>;
+  deletePartType(id: string): Promise<void>;
+  bulkAddPartTypes(partTypes: Omit<PartType, 'id'>[]): Promise<BulkImportResult>;
 
   // ============================================
   // CONFIG
