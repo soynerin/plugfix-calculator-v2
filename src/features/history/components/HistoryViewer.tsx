@@ -7,6 +7,7 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
+import { Spinner } from '@/shared/components/Spinner';
 import { Trash2, Download, Search, Filter, ClipboardList, ChevronDown, ChevronUp, User, Calendar } from 'lucide-react';
 import { EmptyState } from '@/shared/ui/empty-state';
 import {
@@ -146,7 +147,12 @@ export function HistoryViewer() {
   };
 
   if (isLoading) {
-    return <div className="text-center p-8">Cargando historial...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <Spinner size="lg" />
+        <p className="text-sm text-gray-400 dark:text-gray-500">Cargando datos...</p>
+      </div>
+    );
   }
 
   return (

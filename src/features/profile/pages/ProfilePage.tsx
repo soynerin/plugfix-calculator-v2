@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Loader2, Camera, User, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Camera, User, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { UserMenu } from '@/shared/components/UserMenu';
 import { useAuth } from '@/features/auth';
 import { ProfileService } from '@/core/services/ProfileService';
@@ -14,6 +14,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Button } from '@/shared/ui/button';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
+import { Spinner } from '@/shared/components/Spinner';
 import { useToast } from '@/shared/hooks/use-toast';
 import { cn } from '@/shared/utils';
 import { pageVariants, pageTransition } from '@/shared/utils/animations';
@@ -252,8 +253,9 @@ export function ProfilePage() {
     return (
       <div className="min-h-screen bg-background">
         <AppHeader />
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center py-24 gap-3">
+          <Spinner size="lg" />
+          <p className="text-sm text-gray-400 dark:text-gray-500">Cargando datos...</p>
         </div>
       </div>
     );
@@ -302,7 +304,7 @@ export function ProfilePage() {
                   className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/45 flex items-center justify-center transition-all disabled:cursor-not-allowed"
                 >
                   {isUploadingAvatar ? (
-                    <Loader2 className="h-6 w-6 text-white animate-spin opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <Spinner size="md" className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                   ) : (
                     <Camera className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                   )}
@@ -398,7 +400,7 @@ export function ProfilePage() {
                         )}
                       >
                         {isUploadingAvatar ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Spinner size="sm" />
                         ) : (
                           <Camera className="h-4 w-4" />
                         )}
@@ -408,8 +410,14 @@ export function ProfilePage() {
 
                     {/* Save button */}
                     <Button type="submit" className="w-full" size="lg" disabled={isSavingPersonal}>
-                      {isSavingPersonal && <Loader2 className="h-4 w-4 animate-spin" />}
-                      Guardar Cambios
+                      {isSavingPersonal ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Spinner size="sm" />
+                          Guardando...
+                        </span>
+                      ) : (
+                        'Guardar Cambios'
+                      )}
                     </Button>
                   </form>
                 </motion.div>
@@ -507,8 +515,14 @@ export function ProfilePage() {
                       size="lg"
                       disabled={isSavingPassword}
                     >
-                      {isSavingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
-                      Actualizar Contraseña
+                      {isSavingPassword ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Spinner size="sm" />
+                          Actualizando...
+                        </span>
+                      ) : (
+                        'Actualizar Contraseña'
+                      )}
                     </Button>
                   </form>
                 </motion.div>

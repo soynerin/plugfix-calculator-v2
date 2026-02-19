@@ -24,6 +24,7 @@ import {
 } from '@/shared/ui/dialog';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { BulkImportModal, BulkImportResult } from '@/shared/components/BulkImportModal';
+import { Spinner } from '@/shared/components/Spinner';
 import { Database, Search, Plus, Trash2, AlertTriangle, Upload, Pencil, Calendar, ArrowUpDown, X } from 'lucide-react';
 import { suggestDeviceRiskAndCategory, isValidReleaseYear, getAgeDescription, calculateDeviceAge } from '@/core/utils/deviceAgeCalculator';
 
@@ -37,7 +38,7 @@ const RISK_FACTOR_BY_CATEGORY: Record<string, number> = {
 
 export function ModelManager() {
   const { brands } = useBrands();
-  const { models, addModel, updateModel, deleteModel, bulkAddModels } = useModels();
+  const { models, isLoading, isAdding, isUpdating, addModel, updateModel, deleteModel, bulkAddModels } = useModels();
   const { confirm } = useConfirm();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'year-desc' | 'year-asc' | 'name-asc' | 'name-desc' | 'risk-desc' | 'risk-asc'>('year-desc');
@@ -266,6 +267,15 @@ export function ModelManager() {
 
   const isFormValid = formData.name.trim() && formData.brandId;
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <Spinner size="lg" />
+        <p className="text-sm text-gray-400 dark:text-gray-500">Cargando datos...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Form Card */}
@@ -381,11 +391,20 @@ export function ModelManager() {
             <div className="md:col-span-2">
               <Button 
                 onClick={handleAddModel} 
-                disabled={!isFormValid}
+                disabled={!isFormValid || isAdding}
                 className="w-full gap-2 bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Plus className="h-4 w-4" />
-                Agregar Modelo
+                {isAdding ? (
+                  <>
+                    <Spinner size="sm" />
+                    Agregando...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    Agregar Modelo
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -702,10 +721,17 @@ export function ModelManager() {
             <Button
               type="button"
               onClick={handleUpdateModel}
-              disabled={!selectedModel?.name.trim() || !selectedModel?.brandId}
+              disabled={!selectedModel?.name.trim() || !selectedModel?.brandId || isUpdating}
               className="bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white"
             >
-              Guardar Cambios
+              {isUpdating ? (
+                <>
+                  <Spinner size="sm" />
+                  Guardando...
+                </>
+              ) : (
+                'Guardar Cambios'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

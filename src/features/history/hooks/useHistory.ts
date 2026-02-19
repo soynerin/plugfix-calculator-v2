@@ -46,6 +46,7 @@ export function useHistory(filters?: HistoryFilters) {
   return {
     history: history || [],
     isLoading,
+    isAdding: addHistory.isPending,
     error,
     addHistory: addHistory.mutate,
     deleteHistory: deleteHistory.mutate,

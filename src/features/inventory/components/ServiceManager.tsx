@@ -7,10 +7,11 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Plus, Trash2, Wrench, Clock } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { EmptyState } from '@/shared/ui/empty-state';
 
 export function ServiceManager() {
-  const { services, addService, deleteService } = useServices();
+  const { services, isLoading, isAdding, addService, deleteService } = useServices();
   const { confirm } = useConfirm();
   const [formData, setFormData] = useState({
     name: '',
@@ -42,6 +43,15 @@ export function ServiceManager() {
   };
 
   const isFormValid = formData.name.trim() && formData.hours && parseFloat(formData.hours) > 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <Spinner size="lg" />
+        <p className="text-sm text-gray-400 dark:text-gray-500">Cargando datos...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -98,11 +108,20 @@ export function ServiceManager() {
             {/* Botón Agregar - Ancho completo */}
             <Button 
               onClick={handleAddService}
-              disabled={!isFormValid}
+              disabled={!isFormValid || isAdding}
               className="w-full gap-2 bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Plus className="h-4 w-4" />
-              Agregar Servicio
+              {isAdding ? (
+                <>
+                  <Spinner size="sm" />
+                  Agregando...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4" />
+                  Agregar Servicio
+                </>
+              )}
             </Button>
           </div>
         </CardContent>

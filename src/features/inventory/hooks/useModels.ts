@@ -71,6 +71,8 @@ export function useModels(brandId?: string) {
   return {
     models: models || [],
     isLoading,
+    isAdding: addModel.isPending,
+    isUpdating: updateModel.isPending,
     error,
     addModel: addModel.mutate,
     updateModel: updateModel.mutate,

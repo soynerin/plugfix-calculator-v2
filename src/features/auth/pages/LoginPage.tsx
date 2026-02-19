@@ -4,9 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase';
 import { AuthLayout } from '../layouts/AuthLayout';
+import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils';
 
 // ─── Schema ────────────────────────────────────────────────────────────────
@@ -259,7 +260,7 @@ export function LoginPage() {
           >
             {isSubmitting ? (
               <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner size="sm" />
                 Ingresando…
               </span>
             ) : (
@@ -293,7 +294,7 @@ export function LoginPage() {
             aria-label="Ingresar con Google"
           >
             {isGoogleLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Spinner size="sm" />
             ) : (
               <GoogleIcon />
             )}

@@ -4,9 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase';
 import { AuthLayout } from '../layouts/AuthLayout';
+import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils';
 
 const schema = z.object({
@@ -152,7 +153,7 @@ export function ForgotPasswordPage() {
           >
             {isSubmitting ? (
               <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner size="sm" />
                 Enviando enlace…
               </span>
             ) : (

@@ -11,6 +11,7 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
+import { Spinner } from '@/shared/components/Spinner';
 import {
   Select,
   SelectContent,
@@ -28,7 +29,7 @@ export function CalculatorForm() {
   const { models } = useModels();
   const { services } = useServices();
   const { calculate, config } = usePriceCalculator();
-  const { addHistory } = useHistory();
+  const { addHistory, isAdding: isSavingHistory } = useHistory();
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -405,8 +406,16 @@ export function CalculatorForm() {
                     className="w-full transition-all hover:scale-[1.02] active:scale-[0.98]" 
                     variant="default"
                     size="lg"
+                    disabled={isSavingHistory}
                   >
-                    Guardar en Historial
+                    {isSavingHistory ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Spinner size="sm" />
+                        Guardando...
+                      </span>
+                    ) : (
+                      'Guardar en Historial'
+                    )}
                   </Button>
                 </motion.div>
               </motion.div>

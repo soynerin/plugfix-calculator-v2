@@ -6,10 +6,11 @@ import { Input } from '@/shared/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { BulkImportModal, BulkImportResult } from '@/shared/components/BulkImportModal';
 import { EmptyState } from '@/shared/ui/empty-state';
+import { Spinner } from '@/shared/components/Spinner';
 import { Plus, Trash2, Tag, Upload } from 'lucide-react';
 
 export function BrandManager() {
-  const { brands, isLoading, addBrand, deleteBrand, bulkAddBrands } = useBrands();
+  const { brands, isLoading, isAdding, addBrand, deleteBrand, bulkAddBrands } = useBrands();
   const { confirm } = useConfirm();
   const [newBrandName, setNewBrandName] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
@@ -49,7 +50,16 @@ export function BrandManager() {
     return name.charAt(0).toUpperCase();
   };
 
-  if (isLoading) return <div className="text-center p-4">Cargando marcas...</div>;
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
+          <Spinner size="lg" />
+          <p className="text-sm text-gray-400 dark:text-gray-500">Cargando datos...</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const isInputEmpty = !newBrandName.trim();
 
@@ -83,11 +93,20 @@ export function BrandManager() {
           />
           <Button 
             onClick={handleAddBrand}
-            disabled={isInputEmpty}
+            disabled={isInputEmpty || isAdding}
             className="gap-2 bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Plus className="h-4 w-4" />
-            Agregar
+            {isAdding ? (
+              <>
+                <Spinner size="sm" />
+                Agregando...
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" />
+                Agregar
+              </>
+            )}
           </Button>
         </div>
 

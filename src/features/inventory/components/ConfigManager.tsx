@@ -6,6 +6,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { DollarSign, TrendingUp, Percent, Sparkles, RefreshCw } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { useToast } from '@/shared/hooks/use-toast';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { motion } from 'framer-motion';
@@ -118,7 +119,14 @@ export function ConfigManager() {
     };
   }, [formData.hourlyRate, formData.margin, formData.usdRate]);
 
-  if (isLoading) return <div className="text-center p-4">Cargando configuración...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <Spinner size="lg" />
+        <p className="text-sm text-gray-400 dark:text-gray-500">Cargando datos...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -246,7 +254,14 @@ export function ConfigManager() {
               className="w-full h-11 text-base font-semibold"
               disabled={isUpdating}
             >
-              {isUpdating ? 'Guardando...' : 'Guardar Cambios'}
+              {isUpdating ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Spinner size="sm" />
+                  Guardando...
+                </span>
+              ) : (
+                'Guardar Cambios'
+              )}
             </Button>
             <button
               onClick={handleReset}

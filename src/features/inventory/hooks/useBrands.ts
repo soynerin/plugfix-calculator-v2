@@ -69,6 +69,7 @@ export function useBrands() {
   return {
     brands: brands || [],
     isLoading,
+    isAdding: addBrand.isPending,
     error,
     addBrand: addBrand.mutate,
     deleteBrand: deleteBrand.mutate,

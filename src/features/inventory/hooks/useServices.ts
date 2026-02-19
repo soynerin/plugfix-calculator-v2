@@ -57,6 +57,7 @@ export function useServices() {
   return {
     services: services || [],
     isLoading,
+    isAdding: addService.isPending,
     error,
     addService: addService.mutate,
     updateService: updateService.mutate,
