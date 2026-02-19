@@ -71,24 +71,39 @@ export function ProfilePage() {
   });
 
   // ─── Load profile ──────────────────────────────────────────────────────────
+  // Uses user.id from AuthContext to SELECT directly from the profiles table.
 
   useEffect(() => {
+    if (!user?.id) return;
+
     const loadProfile = async () => {
       setIsLoadingProfile(true);
-      const data = await ProfileService.getCurrentUserProfile();
-      setProfile(data);
-      setAvatarUrl(data?.avatar_url ?? null);
-      if (data) {
+      try {
+        const supabase = getSupabaseClient();
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        setProfile(data);
+        setAvatarUrl(data?.avatar_url ?? null);
         personalForm.reset({
-          username: data.username ?? '',
-          full_name: data.full_name ?? '',
+          username: data?.username ?? '',
+          full_name: data?.full_name ?? '',
         });
+      } catch (err) {
+        console.error('Error cargando el perfil:', err);
+      } finally {
+        setIsLoadingProfile(false);
       }
-      setIsLoadingProfile(false);
     };
+
     loadProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user?.id]);
 
   // ─── Derived display values ────────────────────────────────────────────────
 
@@ -155,39 +170,49 @@ export function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
+    // Optimistic preview with local blob URL
     const objectUrl = URL.createObjectURL(file);
     setAvatarUrl(objectUrl);
     setIsUploadingAvatar(true);
 
     try {
       const supabase = getSupabaseClient();
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${user.id}/avatar.${fileExt}`;
+
+      // Unique path: userId/timestamp.ext  → avoids CDN caching stale images
+      const fileExt = file.name.split('.').pop() ?? 'jpg';
+      const filePath = `${user.id}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
+      // Retrieve permanent public URL (no cache-buster needed — the path is already unique)
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      const publicUrl = urlData.publicUrl;
 
-      const success = await ProfileService.updateProfile({ avatar_url: publicUrl });
-      if (success) {
-        setAvatarUrl(publicUrl);
-        setProfile((prev) => (prev ? { ...prev, avatar_url: publicUrl } : prev));
-        toast({ title: '¡Avatar actualizado!', description: 'Tu foto de perfil fue cambiada.' });
-      } else {
-        throw new Error('Error al guardar la URL del avatar');
-      }
+      // Persist the new avatar_url to the profiles table
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      // Swap the blob preview for the permanent URL, then free blob memory
+      URL.revokeObjectURL(objectUrl);
+      setAvatarUrl(publicUrl);
+      setProfile((prev) => (prev ? { ...prev, avatar_url: publicUrl } : prev));
+      toast({ title: '¡Avatar actualizado!', description: 'Tu foto de perfil fue cambiada.' });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error desconocido';
       toast({ title: 'Error al subir el avatar', description: message, variant: 'destructive' });
+      // Roll back preview to the last known good avatar
+      URL.revokeObjectURL(objectUrl);
       setAvatarUrl(profile?.avatar_url ?? null);
     } finally {
       setIsUploadingAvatar(false);
-      URL.revokeObjectURL(objectUrl);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
