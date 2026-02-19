@@ -14,7 +14,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import {
   DollarSign, TrendingUp, Percent, Sparkles, RefreshCw,
-  ChevronDown, Layers, Smartphone, Wrench,
+  ChevronDown, Layers, Smartphone, Wrench, Info, Zap,
 } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -150,6 +150,9 @@ export function ConfigManager() {
     part:  'pantalla' as keyof PartMultipliers,
   });
 
+  // Advanced mode toggle (hidden multiplier sections by default)
+  const [advancedMode, setAdvancedMode] = useState(false);
+
   // Economics section open by default; multiplier sections closed
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['economics']));
   const toggleSection = (id: string) =>
@@ -253,7 +256,9 @@ export function ConfigManager() {
     const tierMult  = multipliers.tier[simState.tier];
     const brandMult = multipliers.brand[simState.brand];
     const partMult  = multipliers.part[simState.part];
-    const combinedRisk = Math.round(tierMult * brandMult * partMult * 100) / 100;
+    const combinedRisk = advancedMode
+      ? Math.round(tierMult * brandMult * partMult * 100) / 100
+      : 1;
 
     const partCostARS        = partCostUSD * usdRate;
     const partCostWithMargin = partCostARS * (1 + margin / 100);
@@ -273,7 +278,7 @@ export function ConfigManager() {
       partMult,
       combinedRisk,
     };
-  }, [formData.hourlyRate, formData.margin, formData.usdRate, simState, multipliers]);
+  }, [formData.hourlyRate, formData.margin, formData.usdRate, simState, multipliers, advancedMode]);
 
   if (isLoading) {
     return (
@@ -386,7 +391,53 @@ export function ConfigManager() {
             </div>
           </AccordionSection>
 
-          {/* -- Sección 2: Multiplicadores de Gama -- */}
+          {/* -- Toggle: Modo Avanzado -- */}
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-muted/40 border border-input">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={advancedMode}
+              onClick={() => setAdvancedMode(v => !v)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${advancedMode ? 'bg-primary-600' : 'bg-input'}`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out ${advancedMode ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold leading-none flex items-center gap-1.5">
+                <Zap className="h-3.5 w-3.5 text-amber-500" />
+                Activar Cálculo Dinámico por Riesgo
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">Modo Avanzado</p>
+            </div>
+          </div>
+
+          {/* -- Banner educativo (visible solo en modo avanzado) -- */}
+          <AnimatePresence initial={false}>
+            {advancedMode && (
+              <motion.div
+                key="edu-banner"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.22, ease: 'easeInOut' }}
+                className="overflow-hidden"
+              >
+                <div className="flex gap-3 p-3.5 rounded-lg bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800">
+                  <Info className="h-4 w-4 mt-0.5 shrink-0 text-cyan-600 dark:text-cyan-400" />
+                  <p className="text-xs leading-relaxed text-cyan-800 dark:text-cyan-200">
+                    <span className="font-semibold">¿Por qué usar extras de riesgo?</span>{' '}
+                    Cobrar lo mismo por abrir un equipo de gama baja que uno premium es un riesgo para tu negocio.
+                    Usá estos extras para que el sistema aumente automáticamente tu mano de obra según la complejidad del equipo.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* -- Secciones de Extras (solo visibles en modo avanzado) -- */}
+          <div className={`space-y-3 transition-all duration-200 ${!advancedMode ? 'opacity-40 pointer-events-none select-none' : ''}`}>
           <AccordionSection
             icon={<Layers className="h-4 w-4" />}
             title="Multiplicadores de Gama"
@@ -403,10 +454,10 @@ export function ConfigManager() {
             <MultiplierField label="Gama Baja"  value={multipliers.tier.baja}    onChange={v => setTier('baja', v)} />
           </AccordionSection>
 
-          {/* -- Sección 3: Multiplicadores de Marca -- */}
+          {/* -- Sección 3: Extra por Marca -- */}
           <AccordionSection
             icon={<Smartphone className="h-4 w-4" />}
-            title="Multiplicadores de Marca"
+            title="Extra por Marca"
             badge="Riesgo"
             isOpen={openSections.has('brand')}
             onToggle={() => toggleSection('brand')}
@@ -421,10 +472,10 @@ export function ConfigManager() {
             <MultiplierField label="Otros"    value={multipliers.brand.otros}    onChange={v => setBrand('otros', v)} />
           </AccordionSection>
 
-          {/* -- Sección 4: Multiplicadores por Repuesto -- */}
+          {/* -- Sección 4: Extra por Tipo de Repuesto -- */}
           <AccordionSection
             icon={<Wrench className="h-4 w-4" />}
-            title="Multiplicadores por Repuesto"
+            title="Extra por Tipo de Repuesto"
             badge="Tipo"
             isOpen={openSections.has('part')}
             onToggle={() => toggleSection('part')}
@@ -437,6 +488,8 @@ export function ConfigManager() {
             <MultiplierField label="Pin de Carga"             value={multipliers.part.pin_carga}        onChange={v => setPart('pin_carga', v)} />
             <MultiplierField label="Batería"                  value={multipliers.part.bateria}          onChange={v => setPart('bateria', v)} />
           </AccordionSection>
+
+          </div>{/* end extras wrapper */}
 
           {/* -- Botonera -- */}
           <div className="space-y-2 pt-2">
@@ -499,54 +552,70 @@ export function ConfigManager() {
               </div>
             </div>
 
-            {/* Gama */}
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">
-                Gama{' '}
-                <span className="font-semibold text-primary-600 dark:text-primary-400">
-                  {simulation.tierMult}×
-                </span>
-              </Label>
-              <Select
-                value={simState.tier}
-                onValueChange={(v) => setSimState(p => ({ ...p, tier: v as keyof TierMultipliers }))}
-              >
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="premium">Premium</SelectItem>
-                  <SelectItem value="alta">Gama Alta</SelectItem>
-                  <SelectItem value="media">Gama Media</SelectItem>
-                  <SelectItem value="baja">Gama Baja</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Gama y Marca — solo en modo avanzado */}
+            <AnimatePresence initial={false}>
+              {advancedMode && (
+                <motion.div
+                  key="sim-advanced-selects"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.22, ease: 'easeInOut' }}
+                  className="col-span-2 overflow-hidden"
+                >
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Gama */}
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">
+                        Gama{' '}
+                        <span className="font-semibold text-primary-600 dark:text-primary-400">
+                          {simulation.tierMult}×
+                        </span>
+                      </Label>
+                      <Select
+                        value={simState.tier}
+                        onValueChange={(v) => setSimState(p => ({ ...p, tier: v as keyof TierMultipliers }))}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="premium">Premium</SelectItem>
+                          <SelectItem value="alta">Gama Alta</SelectItem>
+                          <SelectItem value="media">Gama Media</SelectItem>
+                          <SelectItem value="baja">Gama Baja</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-            {/* Marca */}
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">
-                Marca{' '}
-                <span className="font-semibold text-primary-600 dark:text-primary-400">
-                  {simulation.brandMult}×
-                </span>
-              </Label>
-              <Select
-                value={simState.brand}
-                onValueChange={(v) => setSimState(p => ({ ...p, brand: v as keyof BrandMultipliers }))}
-              >
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="apple">Apple</SelectItem>
-                  <SelectItem value="samsung">Samsung</SelectItem>
-                  <SelectItem value="motorola">Motorola</SelectItem>
-                  <SelectItem value="xiaomi">Xiaomi</SelectItem>
-                  <SelectItem value="otros">Otros</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                    {/* Marca */}
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">
+                        Marca{' '}
+                        <span className="font-semibold text-primary-600 dark:text-primary-400">
+                          {simulation.brandMult}×
+                        </span>
+                      </Label>
+                      <Select
+                        value={simState.brand}
+                        onValueChange={(v) => setSimState(p => ({ ...p, brand: v as keyof BrandMultipliers }))}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="apple">Apple</SelectItem>
+                          <SelectItem value="samsung">Samsung</SelectItem>
+                          <SelectItem value="motorola">Motorola</SelectItem>
+                          <SelectItem value="xiaomi">Xiaomi</SelectItem>
+                          <SelectItem value="otros">Otros</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Tipo de Repuesto */}
             <div className="col-span-2">
@@ -609,7 +678,9 @@ export function ConfigManager() {
 
               <div className="flex items-center justify-between py-3 px-4 bg-white dark:bg-card rounded-lg shadow-sm">
                 <span className="text-sm text-muted-foreground">
-                  Mano de Obra (1h × {simulation.combinedRisk}×)
+                  {advancedMode
+                    ? `Mano de Obra (1h × ${simulation.combinedRisk}×)`
+                    : 'Mano de Obra (1h base)'}
                 </span>
                 <span className="text-lg font-semibold tabular-nums">
                   <AnimatedNumber value={simulation.laborCostARS} currency="ARS" />
@@ -643,21 +714,28 @@ export function ConfigManager() {
 
             {/* Info Adicional — desglose de multiplicadores */}
             <div className="pt-3 text-xs text-muted-foreground space-y-1.5 border-t">
-              <p className="flex justify-between">
-                <span>Factor combinado:</span>
-                <span className="font-medium tabular-nums">
-                  {simulation.tierMult} × {simulation.brandMult} × {simulation.partMult} ={' '}
-                  <span className="text-primary-600 dark:text-primary-400 font-semibold">
-                    {simulation.combinedRisk}×
+              {advancedMode ? (
+                <p className="flex justify-between">
+                  <span>Factor combinado:</span>
+                  <span className="font-medium tabular-nums">
+                    {simulation.tierMult} × {simulation.brandMult} × {simulation.partMult} ={' '}
+                    <span className="text-primary-600 dark:text-primary-400 font-semibold">
+                      {simulation.combinedRisk}×
+                    </span>
                   </span>
-                </span>
-              </p>
+                </p>
+              ) : (
+                <p className="flex justify-between">
+                  <span>Modo:</span>
+                  <span className="font-medium text-muted-foreground">Sin ajuste por riesgo</span>
+                </p>
+              )}
               <p className="flex justify-between">
                 <span>Horas de trabajo:</span>
                 <span className="font-medium">1h</span>
               </p>
               <p className="text-[10px] text-muted-foreground/70 mt-3 italic">
-                * El precio cambia instantáneamente al editar multiplicadores
+                * El precio cambia instantáneamente al editar valores
               </p>
             </div>
           </motion.div>
