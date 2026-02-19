@@ -23,11 +23,11 @@ import { Spinner } from '@/shared/components/Spinner';
 const DEFAULT_SERVICES: Omit<Service, 'id'>[] = [
   { name: 'Cambio de pin de carga Micro USB - V8', hours: 1.0, description: 'Reemplazo de puerto de carga clásico (soldadura simple).' },
   { name: 'Cambio de pin de carga Micro USB - C', hours: 1.5, description: 'Reemplazo de puerto de carga Tipo C (requiere mayor precisión de soldadura).' },
-  { name: 'Cambio de Modulo MO (*1)', hours: 1.5, description: 'Reemplazo de display LCD/OLED completo. Sugerido: Cobrar Repuesto x2 + 10%.' },
+  { name: 'Cambio de Modulo', hours: 1.5, description: 'Reemplazo de display LCD/OLED completo. Sugerido: Cobrar Repuesto x2 + 10%.' },
   { name: 'Cambio de microfono', hours: 1.0, description: 'Reemplazo de micrófono inferior o superior en placa o flex.' },
   { name: 'Cambio de Boton Desarme Simple', hours: 0.5, description: 'Reemplazo de flex de encendido o volumen de fácil acceso.' },
   { name: 'Flasheo Hard Reset', hours: 1.0, description: 'Reinstalación de sistema operativo o reseteo de fábrica.' },
-  { name: 'FRP (*2)', hours: 1.5, description: 'Desbloqueo de cuenta de Google (Factory Reset Protection).' },
+  { name: 'FRP', hours: 1.5, description: 'Desbloqueo de cuenta de Google (Factory Reset Protection).' },
   { name: 'Cambio de Componentes SMD No IC', hours: 1.5, description: 'Reemplazo de capacitores, diodos o resistencias en placa.' },
   { name: 'Cambio de IC', hours: 2.5, description: 'Reemplazo de circuitos integrados (Tristar, IF PMIC, etc.).' },
   { name: 'Reflow de Componentes de placa Main', hours: 1.5, description: 'Resoldado por calor de componentes en la placa madre.' },
