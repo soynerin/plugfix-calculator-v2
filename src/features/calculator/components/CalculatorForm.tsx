@@ -159,7 +159,7 @@ export function CalculatorForm() {
 
   return (
     <>
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid gap-6 lg:grid-cols-2 pb-36 md:pb-8">
       {/* Form */}
       <Card className="bg-white dark:bg-card shadow-lg">
         <CardHeader className="flex flex-row items-start justify-between pb-4">
@@ -188,7 +188,7 @@ export function CalculatorForm() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Marca *</Label>
               <Select
@@ -235,7 +235,7 @@ export function CalculatorForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Servicio *</Label>
               <Select
