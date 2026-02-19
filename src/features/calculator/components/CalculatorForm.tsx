@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calculator, Receipt, AlertTriangle } from 'lucide-react';
+import { Receipt, AlertTriangle, Printer, MessageCircle } from 'lucide-react';
 import { useBrands } from '@/features/inventory/hooks/useBrands';
 import { useModels } from '@/features/inventory/hooks/useModels';
 import { useServices } from '@/features/inventory/hooks/useServices';
@@ -66,12 +66,10 @@ export function CalculatorForm() {
   const isFormValid = 
     formData.brandId && 
     formData.modelId && 
-    formData.serviceId && 
-    formData.partCost && 
-    parseFloat(formData.partCost) > 0;
+    formData.serviceId;
 
   const handleCalculate = () => {
-    if (!selectedModel || !selectedService || !formData.partCost) {
+    if (!selectedModel || !selectedService) {
       toast({
         title: "Campos incompletos",
         description: "Por favor completa todos los campos requeridos",
@@ -83,7 +81,7 @@ export function CalculatorForm() {
     const partTypeMultiplier = selectedPartType?.riskMultiplier ?? 1.0;
 
     const breakdown = calculate({
-      partCost: parseFloat(formData.partCost),
+      partCost: parseFloat(formData.partCost) || 0,
       currency: formData.currency,
       laborHours: selectedService.hours,
       riskFactor: Math.round(selectedModel.riskFactor * partTypeMultiplier * 100) / 100,
@@ -103,7 +101,7 @@ export function CalculatorForm() {
       brand: selectedBrand.name,
       model: selectedModel.name,
       service: selectedService.name,
-      partCost: parseFloat(formData.partCost),
+      partCost: parseFloat(formData.partCost) || 0,
       currency: formData.currency,
       finalPrice: result.finalPriceARS,
       breakdown: result,
@@ -147,6 +145,27 @@ export function CalculatorForm() {
       behavior: 'smooth', 
       block: 'start' 
     });
+  };
+
+  const handleWhatsApp = () => {
+    if (!result || !selectedBrand || !selectedModel || !selectedService) return;
+
+    const lines: string[] = [];
+    if (formData.clientName.trim()) lines.push(`Para: ${formData.clientName.trim()}`);
+    lines.push(
+      '── Cotización de Reparación ──',
+      `Equipo: ${selectedBrand.name} ${selectedModel.name}`,
+      `Servicio: ${selectedService.name}`,
+      '─────────────────────────────',
+      `Repuestos: ${formatARS(result.partCostARS)}`,
+      `Mano de Obra: ${formatARS(result.laborCostARS)}`,
+      '─────────────────────────────',
+      `TOTAL: ${formatARS(result.finalPriceARS)}`,
+    );
+
+    const message = encodeURIComponent(lines.join('\n'));
+    console.log('[WhatsApp] Mensaje generado:\n', lines.join('\n'));
+    window.open(`https://wa.me/?text=${message}`, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -278,7 +297,7 @@ export function CalculatorForm() {
 
           {/* Input Group: Costo + Moneda */}
           <div>
-            <Label>Costo Repuesto *</Label>
+            <Label>Costo Repuesto <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
             <div className="flex gap-2">
               <div className="flex-1">
                 <Input
@@ -344,141 +363,136 @@ export function CalculatorForm() {
         </CardContent>
       </Card>
 
-      {/* Result - Ticket Style */}
-      <Card ref={resultCardRef} className="bg-white dark:bg-card shadow-lg">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Cotización</CardTitle>
-          </div>
-          <CardDescription>Resumen de la reparación</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AnimatePresence mode="wait">
-            {!result ? (
+      {/* Result - Client-Facing Ticket */}
+      <Card ref={resultCardRef} className="bg-white dark:bg-card shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+        <AnimatePresence mode="wait">
+          {!result ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-20 px-6"
+            >
               <motion.div
-                key="empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-center py-16"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="text-center"
               >
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <Calculator className="h-16 w-16 mx-auto text-gray-300 dark:text-gray-700 mb-4" />
-                  <p className="text-muted-foreground text-sm">
-                    Ingresa los datos para ver la estimación
-                  </p>
-                </motion.div>
+                <Receipt className="h-16 w-16 mx-auto text-gray-300 dark:text-gray-700 mb-4" />
+                <p className="text-base font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  Sin cotización
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Completa el formulario y presiona "Calcular"
+                </p>
               </motion.div>
-            ) : (
-              <motion.div
-                key="result"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-6"
-              >
-                {/* Precio Principal - Estilo Ticket */}
-                <div className="text-center py-8 border-b-2 border-dashed border-gray-200 dark:border-gray-700">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+            </motion.div>
+          ) : (
+            <motion.div
+              key="ticket"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {/* Ticket Header */}
+              <div className="bg-gradient-to-br from-teal-600 to-emerald-600 px-6 py-5 text-white">
+                <div className="flex items-center gap-2 mb-3">
+                  <Receipt className="h-4 w-4 opacity-70" />
+                  <span className="text-xs uppercase tracking-[0.15em] opacity-70 font-semibold">
+                    Cotización Oficial
+                  </span>
+                </div>
+                {formData.clientName.trim() && (
+                  <motion.p
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-lg font-bold mb-1"
+                  >
+                    Para: {formData.clientName.trim()}
+                  </motion.p>
+                )}
+                <p className="text-sm font-semibold opacity-90">
+                  {selectedBrand?.name} {selectedModel?.name}
+                </p>
+                {selectedService && (
+                  <p className="text-xs opacity-75 mt-0.5">
+                    {selectedService.name}
+                  </p>
+                )}
+              </div>
+
+              {/* Ticket Body */}
+              <div className="px-6 pt-5 pb-6 space-y-5">
+                {/* Line Items */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs uppercase tracking-widest text-muted-foreground pb-2 border-b border-gray-100 dark:border-gray-800">
+                    <span>Concepto</span>
+                    <span>Importe</span>
+                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="flex justify-between items-center py-2"
+                  >
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Repuestos</span>
+                    <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                      <AnimatedNumber value={result.partCostARS} currency="ARS" />
+                    </span>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="flex justify-between items-center py-2"
+                  >
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Mano de Obra Especializada</span>
+                    <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                      <AnimatedNumber value={result.laborCostARS} currency="ARS" />
+                    </span>
+                  </motion.div>
+                </div>
+
+                {/* Dashed separator */}
+                <div className="border-t-2 border-dashed border-gray-200 dark:border-gray-700 -mx-6" />
+
+                {/* Total Box */}
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 }}
+                  className="rounded-xl bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800 p-4"
+                >
+                  <p className="text-xs uppercase tracking-widest text-teal-600 dark:text-teal-400 font-semibold mb-1">
                     Total a Cobrar
                   </p>
                   <motion.p
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                    className="text-5xl font-bold text-gray-900 dark:text-gray-100"
+                    transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+                    className="text-4xl font-bold text-teal-700 dark:text-teal-300 tabular-nums"
                   >
                     <AnimatedNumber value={result.finalPriceARS} currency="ARS" />
                   </motion.p>
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-lg text-muted-foreground mt-2"
-                  >
+                  <p className="text-sm text-teal-500 mt-1 tabular-nums">
                     ≈ <AnimatedNumber value={result.finalPriceUSD} currency="USD" />
-                  </motion.p>
-                </div>
-
-                {/* Desglose - Estilo Recibo */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className="space-y-3 text-sm pb-4 border-b border-dashed border-gray-200 dark:border-gray-700"
-                >
-                  <h3 className="font-semibold text-base mb-3 text-gray-900 dark:text-gray-100">
-                    Desglose de Costos
-                  </h3>
-                  <div className="space-y-2.5">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Repuesto + Margen</span>
-                      <span className="font-medium tabular-nums">
-                        <AnimatedNumber value={result.partCostARS} currency="ARS" />
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Mano de Obra Base</span>
-                      <span className="font-medium tabular-nums">
-                        <AnimatedNumber value={result.laborCostARS - result.riskPremiumARS} currency="ARS" />
-                      </span>
-                    </div>
-                    {result.riskPremiumARS > 0 && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-amber-600 dark:text-amber-400">Adicional por Complejidad</span>
-                        <span className="font-medium tabular-nums text-amber-600 dark:text-amber-400">
-                          +<AnimatedNumber value={result.riskPremiumARS} currency="ARS" />
-                        </span>
-                      </div>
-                    )}
-                    <div className="pt-2 mt-2 border-t flex justify-between items-center">
-                      <span className="text-muted-foreground">Subtotal</span>
-                      <span className="font-medium tabular-nums">
-                        <AnimatedNumber value={result.subtotalARS} currency="ARS" />
-                      </span>
-                    </div>
-                  </div>
+                  </p>
                 </motion.div>
 
-                {/* Info de Configuración */}
-                {config && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-xs text-muted-foreground space-y-1 pb-4 border-b border-dashed border-gray-200 dark:border-gray-700"
-                  >
-                    <p className="flex justify-between">
-                      <span>Tarifa por hora:</span>
-                      <span className="tabular-nums">{formatARS(config.hourlyRate)}</span>
-                    </p>
-                    <p className="flex justify-between">
-                      <span>Margen repuestos:</span>
-                      <span className="tabular-nums">{config.margin}%</span>
-                    </p>
-                    <p className="flex justify-between">
-                      <span>Cotización USD:</span>
-                      <span className="tabular-nums">{formatARS(config.usdRate)}</span>
-                    </p>
-                  </motion.div>
-                )}
-
-                {/* Botón de Guardar */}
+                {/* Actions */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
+                  transition={{ delay: 0.4 }}
+                  className="space-y-2"
                 >
-                  <Button 
-                    onClick={handleSaveToHistory} 
-                    className="w-full transition-all hover:scale-[1.02] active:scale-[0.98]" 
-                    variant="default"
+                  <Button
+                    onClick={handleSaveToHistory}
+                    className="w-full bg-teal-600 hover:bg-teal-700 text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
                     size="lg"
                     disabled={isSavingHistory}
                   >
@@ -491,11 +505,31 @@ export function CalculatorForm() {
                       'Guardar en Historial'
                     )}
                   </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 text-gray-600 dark:text-gray-300"
+                      onClick={() => window.print()}
+                    >
+                      <Printer className="h-4 w-4" />
+                      Imprimir Ticket
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 text-gray-600 dark:text-gray-300"
+                      onClick={handleWhatsApp}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Enviar por WhatsApp
+                    </Button>
+                  </div>
                 </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </CardContent>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </Card>
     </div>
     
