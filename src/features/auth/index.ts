@@ -4,5 +4,7 @@ export { LoginPage } from './pages/LoginPage';
 export { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 export { UpdatePasswordPage } from './pages/UpdatePasswordPage';
 export { AuthProvider, useAuth } from './contexts/AuthContext';
+export type { UserRole } from './contexts/AuthContext';
 export { ProtectedRoute } from './components/ProtectedRoute';
 export { GuestRoute } from './components/GuestRoute';
+export { AdminRoute } from './components/AdminRoute';

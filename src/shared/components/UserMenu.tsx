@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { LogOut, User } from 'lucide-react';
 import { useAuth } from '@/features/auth';
 import { getSupabaseClient } from '@/lib/supabase';
+import { cn } from '@/shared/utils/cn';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -16,7 +17,7 @@ function getInitials(name: string): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function UserMenu() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
@@ -104,6 +105,19 @@ export function UserMenu() {
           <div className="px-4 py-3">
             <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
             <p className="text-xs text-muted-foreground truncate mt-0.5">{email}</p>
+            {/* Role badge */}
+            {role && (
+              <span
+                className={cn(
+                  'inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide',
+                  role === 'admin'
+                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                    : 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
+                )}
+              >
+                {role === 'admin' ? '⭐ Admin' : '🔧 Técnico'}
+              </span>
+            )}
           </div>
 
           <div className="border-t border-border" />

@@ -9,6 +9,7 @@ import {
   AuthProvider,
   ProtectedRoute,
   GuestRoute,
+  AdminRoute,
   useAuth,
 } from '@/features/auth';
 import { motion } from 'framer-motion';
@@ -43,7 +44,8 @@ const queryClient = new QueryClient({
 
 function MainLayout() {
   const [activeTab, setActiveTab] = useState('calculator');
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const isAdmin = role === 'admin';
 
   const displayName =
     (user?.user_metadata?.username as string | undefined) ||
@@ -87,11 +89,17 @@ function MainLayout() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="hidden md:grid w-full grid-cols-3 lg:w-auto lg:grid-cols-6">
+          <TabsList
+            className={`hidden md:grid w-full lg:w-auto ${
+              isAdmin
+                ? 'grid-cols-3 lg:grid-cols-6'
+                : 'grid-cols-2 lg:grid-cols-4'
+            }`}
+          >
             <TabsTrigger value="calculator">🧮 Calculadora</TabsTrigger>
             <TabsTrigger value="history">📋 Historial</TabsTrigger>
-            <TabsTrigger value="brands">🏷️ Marcas</TabsTrigger>
-            <TabsTrigger value="models">📱 Modelos</TabsTrigger>
+            {isAdmin && <TabsTrigger value="brands">🏷️ Marcas</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="models">📱 Modelos</TabsTrigger>}
             <TabsTrigger value="services">🔧 Servicios</TabsTrigger>
             <TabsTrigger value="config">⚙️ Config</TabsTrigger>
           </TabsList>
@@ -121,31 +129,35 @@ function MainLayout() {
           </TabsContent>
 
           <TabsContent value="brands" className="space-y-4">
-            <motion.div
-              key="brands"
-              variants={pageVariants}
-              initial="initial"
-              animate="animate"
-              transition={pageTransition}
-            >
-              <div className="grid gap-6">
-                <BrandManager />
-              </div>
-            </motion.div>
+            <AdminRoute>
+              <motion.div
+                key="brands"
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                transition={pageTransition}
+              >
+                <div className="grid gap-6">
+                  <BrandManager />
+                </div>
+              </motion.div>
+            </AdminRoute>
           </TabsContent>
 
           <TabsContent value="models" className="space-y-4">
-            <motion.div
-              key="models"
-              variants={pageVariants}
-              initial="initial"
-              animate="animate"
-              transition={pageTransition}
-            >
-              <div className="grid gap-6">
-                <ModelManager />
-              </div>
-            </motion.div>
+            <AdminRoute>
+              <motion.div
+                key="models"
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                transition={pageTransition}
+              >
+                <div className="grid gap-6">
+                  <ModelManager />
+                </div>
+              </motion.div>
+            </AdminRoute>
           </TabsContent>
 
           <TabsContent value="services" className="space-y-4">
