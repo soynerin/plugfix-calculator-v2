@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Link } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   SignUpPage,
@@ -12,7 +12,8 @@ import {
   useAuth,
 } from '@/features/auth';
 import { motion } from 'framer-motion';
-import { LogOut } from 'lucide-react';
+import { LogOut, UserCircle } from 'lucide-react';
+import { ProfilePage } from '@/features/profile';
 import { db } from '@/core/services';
 import { getSupabaseClient } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
@@ -70,12 +71,19 @@ function MainLayout() {
             </div>
             {/* User info + logout */}
             <div className="flex items-center gap-2 md:gap-3">
-              <div className="hidden sm:flex flex-col items-end">
-                <span className="text-xs text-muted-foreground leading-none mb-0.5">Sesión activa</span>
-                <span className="text-sm font-medium text-primary-600 dark:text-primary-400 truncate max-w-[180px]">
+              <Link
+                to="/profile"
+                className="hidden sm:flex flex-col items-end group"
+                title="Ver mi perfil"
+              >
+                <span className="text-xs text-muted-foreground leading-none mb-0.5 flex items-center gap-1">
+                  Sesión activa
+                  <UserCircle className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </span>
+                <span className="text-sm font-medium text-primary-600 dark:text-primary-400 truncate max-w-[180px] group-hover:underline underline-offset-2">
                   {displayName}
                 </span>
-              </div>
+              </Link>
               <button
                 onClick={handleLogout}
                 title="Cerrar sesión"
@@ -284,6 +292,14 @@ function App() {
             <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
             <Route path="/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
             <Route path="/update-password" element={<UpdatePasswordPage />} />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/*"
               element={
