@@ -222,14 +222,14 @@ export function CalculatorForm() {
               <SelectContent>
                 {filteredModels.map((model) => (
                   <SelectItem key={model.id} value={model.id}>
-                    {model.name} (Riesgo: {model.riskFactor}x)
+                    {model.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {selectedModel && (
               <p className="text-sm text-muted-foreground mt-1">
-                Categoría: {selectedModel.category} • Factor de riesgo: {selectedModel.riskFactor}x
+                Categoría: {selectedModel.category}
               </p>
             )}
           </div>

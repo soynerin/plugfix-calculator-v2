@@ -221,7 +221,6 @@ export class SupabaseAdapter implements IDatabaseService {
       .insert({
         brand_id: model.brandId,
         name: model.name,
-        risk_factor: model.riskFactor,
         category: model.category || null,
         release_year: model.releaseYear || null
       })
@@ -237,7 +236,6 @@ export class SupabaseAdapter implements IDatabaseService {
     const updateData: Record<string, any> = {};
     if (modelData.brandId !== undefined) updateData.brand_id = modelData.brandId;
     if (modelData.name !== undefined) updateData.name = modelData.name;
-    if (modelData.riskFactor !== undefined) updateData.risk_factor = modelData.riskFactor;
     if (modelData.category !== undefined) updateData.category = modelData.category;
     if (modelData.releaseYear !== undefined) updateData.release_year = modelData.releaseYear;
 
@@ -297,7 +295,6 @@ export class SupabaseAdapter implements IDatabaseService {
           .insert({
             brand_id: model.brandId,
             name: model.name.trim(),
-            risk_factor: model.riskFactor || 1.0,
             category: model.category || 'Gama Media',
             release_year: model.releaseYear || null
           });
@@ -768,7 +765,6 @@ export class SupabaseAdapter implements IDatabaseService {
         await this.addModel({
           brandId: model.brandId,
           name: model.name,
-          riskFactor: model.riskFactor,
           category: model.category
         });
       }
@@ -821,7 +817,6 @@ export class SupabaseAdapter implements IDatabaseService {
       id: data.id,
       brandId: data.brand_id,
       name: data.name,
-      riskFactor: data.risk_factor
     };
 
     if (data.category && typeof data.category === 'string') {

@@ -25,23 +25,15 @@ import {
 import { EmptyState } from '@/shared/ui/empty-state';
 import { BulkImportModal, BulkImportResult } from '@/shared/components/BulkImportModal';
 import { Spinner } from '@/shared/components/Spinner';
-import { Database, Search, Plus, Trash2, AlertTriangle, Upload, Pencil, Calendar, ArrowUpDown, X } from 'lucide-react';
+import { Database, Search, Plus, Trash2, Upload, Pencil, Calendar, ArrowUpDown, X } from 'lucide-react';
 import { suggestDeviceRiskAndCategory, isValidReleaseYear, getAgeDescription, calculateDeviceAge } from '@/core/utils/deviceAgeCalculator';
-
-// Mapeo de categorías a factores de riesgo
-const RISK_FACTOR_BY_CATEGORY: Record<string, number> = {
-  'Premium': 2.0,
-  'Gama Alta': 1.7,
-  'Gama Media': 1.4,
-  'Gama Baja': 1.1,
-};
 
 export function ModelManager() {
   const { brands } = useBrands();
   const { models, isLoading, isAdding, isUpdating, deletingModelId, addModel, updateModel, deleteModel, bulkAddModels } = useModels();
   const { confirm } = useConfirm();
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'year-desc' | 'year-asc' | 'name-asc' | 'name-desc' | 'risk-desc' | 'risk-asc'>('year-desc');
+  const [sortBy, setSortBy] = useState<'year-desc' | 'year-asc' | 'name-asc' | 'name-desc'>('year-desc');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeBrand, setActiveBrand] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -50,20 +42,17 @@ export function ModelManager() {
     id: string;
     name: string;
     brandId: string;
-    riskFactor: string;
     category: 'Gama Baja' | 'Gama Media' | 'Gama Alta' | 'Premium';
     releaseYear: string;
   } | null>(null);
   const [formData, setFormData] = useState<{
     name: string;
     brandId: string;
-    riskFactor: string;
     category: 'Gama Baja' | 'Gama Media' | 'Gama Alta' | 'Premium';
     releaseYear: string;
   }>({
     name: '',
     brandId: '',
-    riskFactor: '1.0',
     category: 'Gama Media',
     releaseYear: '',
   });
@@ -106,10 +95,6 @@ export function ModelManager() {
         return filtered.sort((a, b) => a.name.localeCompare(b.name, 'es'));
       case 'name-desc':
         return filtered.sort((a, b) => b.name.localeCompare(a.name, 'es'));
-      case 'risk-desc':
-        return filtered.sort((a, b) => b.riskFactor - a.riskFactor);
-      case 'risk-asc':
-        return filtered.sort((a, b) => a.riskFactor - b.riskFactor);
       default:
         return filtered;
     }
@@ -128,7 +113,7 @@ export function ModelManager() {
     return brands.filter(b => brandIds.has(b.id));
   }, [brands, models]);
 
-  // Auto-sugerencia basada en el año de lanzamiento
+  // Auto-sugerencia de categoría basada en el año de lanzamiento
   useEffect(() => {
     if (formData.releaseYear && isValidReleaseYear(parseInt(formData.releaseYear))) {
       const year = parseInt(formData.releaseYear);
@@ -136,7 +121,6 @@ export function ModelManager() {
       setFormData(prev => ({
         ...prev,
         category: suggestion.category,
-        riskFactor: suggestion.riskFactor.toString()
       }));
     }
   }, [formData.releaseYear]);
@@ -146,7 +130,6 @@ export function ModelManager() {
       const modelData: Omit<RepairModel, 'id'> = {
         name: formData.name.trim(),
         brandId: formData.brandId,
-        riskFactor: parseFloat(formData.riskFactor),
         category: formData.category,
       };
       
@@ -155,7 +138,7 @@ export function ModelManager() {
       }
       
       addModel(modelData);
-      setFormData({ name: '', brandId: '', riskFactor: '1.0', category: 'Gama Media', releaseYear: '' });
+      setFormData({ name: '', brandId: '', category: 'Gama Media', releaseYear: '' });
     }
   };
 
@@ -164,7 +147,6 @@ export function ModelManager() {
       id: model.id,
       name: model.name,
       brandId: model.brandId,
-      riskFactor: model.riskFactor.toString(),
       category: (model.category || 'Gama Media') as 'Gama Baja' | 'Gama Media' | 'Gama Alta' | 'Premium',
       releaseYear: model.releaseYear?.toString() || '',
     });
@@ -176,7 +158,6 @@ export function ModelManager() {
       const updateData: Partial<RepairModel> = {
         name: selectedModel.name.trim(),
         brandId: selectedModel.brandId,
-        riskFactor: parseFloat(selectedModel.riskFactor),
         category: selectedModel.category,
       };
       
@@ -221,7 +202,6 @@ export function ModelManager() {
         const modelData: Omit<RepairModel, 'id'> = {
           name: item.nombre,
           brandId: brand.id,
-          riskFactor: item.factorRiesgo || item.riskFactor || 1.0,
           category: (item.categoria || item.category || 'Gama Media') as 'Gama Baja' | 'Gama Media' | 'Gama Alta' | 'Premium',
         };
         
@@ -239,14 +219,6 @@ export function ModelManager() {
 
     // Realizar bulk import
     return await bulkAddModels(validModels);
-  };
-
-  // Helper para obtener estilos de badge de riesgo
-  const getRiskBadgeStyles = (riskFactor: number) => {
-    if (riskFactor > 1) {
-      return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400';
-    }
-    return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
   };
 
   // Helper para obtener estilos de badge de categoría
@@ -328,20 +300,7 @@ export function ModelManager() {
               />
             </div>
 
-            {/* Fila 2: Factor de Riesgo y Categoría */}
-            <div>
-              <Label>Factor de Riesgo</Label>
-              <Input
-                type="number"
-                step="0.1"
-                min="1.0"
-                max="2.5"
-                value={formData.riskFactor}
-                onChange={(e) => setFormData({ ...formData, riskFactor: e.target.value })}
-                placeholder="1.0"
-              />
-            </div>
-
+            {/* Fila 2: Categoría */}
             <div>
               <Label>Categoría</Label>
               <Select
@@ -349,7 +308,6 @@ export function ModelManager() {
                 onValueChange={(value: any) => setFormData({ 
                   ...formData, 
                   category: value,
-                  riskFactor: RISK_FACTOR_BY_CATEGORY[value]?.toString() || formData.riskFactor
                 })}
               >
                 <SelectTrigger>
@@ -381,8 +339,7 @@ export function ModelManager() {
               </div>
               {formData.releaseYear && isValidReleaseYear(parseInt(formData.releaseYear)) && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  {getAgeDescription(calculateDeviceAge(parseInt(formData.releaseYear)))} - 
-                  Gama y Riesgo sugeridos automáticamente
+                  {getAgeDescription(calculateDeviceAge(parseInt(formData.releaseYear)))} — Gama sugerida automáticamente
                 </p>
               )}
             </div>
@@ -433,8 +390,6 @@ export function ModelManager() {
               <SelectItem value="year-asc">Año (Más antiguo)</SelectItem>
               <SelectItem value="name-asc">Nombre (A-Z)</SelectItem>
               <SelectItem value="name-desc">Nombre (Z-A)</SelectItem>
-              <SelectItem value="risk-desc">Riesgo (Mayor a Menor)</SelectItem>
-              <SelectItem value="risk-asc">Riesgo (Menor a Mayor)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -579,12 +534,6 @@ export function ModelManager() {
 
                   {/* Footer: Badges */}
                   <div className="flex flex-wrap gap-2">
-                    {/* Badge de Riesgo */}
-                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${getRiskBadgeStyles(model.riskFactor)}`}>
-                      <AlertTriangle className="h-3 w-3" />
-                      <span>Riesgo: {model.riskFactor}x</span>
-                    </div>
-
                     {/* Badge de Categoría */}
                     <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getCategoryBadgeStyles(model.category || 'Gama Media')}`}>
                       {model.category || 'Gama Media'}
@@ -649,21 +598,6 @@ export function ModelManager() {
                 />
               </div>
 
-              {/* Factor de Riesgo */}
-              <div className="grid gap-2">
-                <Label htmlFor="edit-risk">Factor de Riesgo</Label>
-                <Input
-                  id="edit-risk"
-                  type="number"
-                  step="0.1"
-                  min="1.0"
-                  max="2.5"
-                  value={selectedModel.riskFactor}
-                  onChange={(e) => setSelectedModel({ ...selectedModel, riskFactor: e.target.value })}
-                  className="focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-
               {/* Categoría */}
               <div className="grid gap-2">
                 <Label htmlFor="edit-category">Categoría</Label>
@@ -672,7 +606,6 @@ export function ModelManager() {
                   onValueChange={(value: any) => setSelectedModel({ 
                     ...selectedModel, 
                     category: value,
-                    riskFactor: RISK_FACTOR_BY_CATEGORY[value]?.toString() || selectedModel.riskFactor
                   })}
                 >
                   <SelectTrigger id="edit-category">
@@ -747,8 +680,8 @@ export function ModelManager() {
         onOpenChange={setShowImportModal}
         title="Importar Modelos desde JSON"
         description="Pega un array de objetos JSON con los modelos que deseas importar. Los modelos existentes (mismo nombre y marca) serán omitidos. El campo 'añoLanzamiento' es opcional."
-        placeholder='[{"nombre": "Galaxy S23", "marca": "Samsung", "factorRiesgo": 1.2, "categoria": "Gama Alta", "añoLanzamiento": 2023}]'
-        exampleJson='[{"nombre": "Galaxy S23", "marca": "Samsung", "factorRiesgo": 1.2, "categoria": "Gama Alta", "añoLanzamiento": 2023}]'
+        placeholder='[{"nombre": "Galaxy S23", "marca": "Samsung", "categoria": "Gama Alta", "añoLanzamiento": 2023}]'
+        exampleJson='[{"nombre": "Galaxy S23", "marca": "Samsung", "categoria": "Gama Alta", "añoLanzamiento": 2023}]'
         onImport={handleBulkImport}
       />
     </div>
