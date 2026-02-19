@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calculator, Receipt } from 'lucide-react';
+import { Calculator, Receipt, AlertTriangle } from 'lucide-react';
 import { useBrands } from '@/features/inventory/hooks/useBrands';
 import { useModels } from '@/features/inventory/hooks/useModels';
 import { useServices } from '@/features/inventory/hooks/useServices';
@@ -39,7 +39,12 @@ export function CalculatorForm() {
     serviceId: '',
     partCost: '',
     currency: 'USD' as 'ARS' | 'USD',
+    diagnosis: '',
   });
+
+  const showUSDWarning =
+    formData.currency === 'USD' &&
+    parseFloat(formData.partCost) > 1500;
 
   const [result, setResult] = useState<PriceBreakdown | null>(null);
   const resultCardRef = useRef<HTMLDivElement>(null);
@@ -103,6 +108,10 @@ export function CalculatorForm() {
       historyEntry.clientName = formData.clientName.trim();
     }
 
+    if (formData.diagnosis.trim()) {
+      historyEntry.notes = formData.diagnosis.trim();
+    }
+
     addHistory(historyEntry);
 
     toast({
@@ -121,6 +130,7 @@ export function CalculatorForm() {
       serviceId: '',
       partCost: '',
       currency: 'USD',
+      diagnosis: '',
     });
     setResult(null);
   };
@@ -217,6 +227,20 @@ export function CalculatorForm() {
             </Select>
           </div>
 
+          {/* Diagnóstico opcional */}
+          <div>
+            <Label htmlFor="diagnosis">Diagnóstico / Falla detectada <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
+            <textarea
+              id="diagnosis"
+              rows={2}
+              maxLength={200}
+              value={formData.diagnosis}
+              onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
+              placeholder="Ej: Pantalla rota, no enciende, pin de carga flojo..."
+              className="mt-1.5 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors"
+            />
+          </div>
+
           {/* Input Group: Costo + Moneda */}
           <div>
             <Label>Costo Repuesto *</Label>
@@ -247,6 +271,21 @@ export function CalculatorForm() {
                 </SelectContent>
               </Select>
             </div>
+            <AnimatePresence>
+              {showUSDWarning && (
+                <motion.p
+                  key="usd-warning"
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.18 }}
+                  className="flex items-center gap-1.5 mt-1.5 text-xs text-red-500 dark:text-red-400"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  ¿Estás seguro de que el repuesto está en Dólares? El valor parece muy alto.
+                </motion.p>
+              )}
+            </AnimatePresence>
           </div>
 
           <div className="flex gap-2 pt-2">
@@ -350,16 +389,16 @@ export function CalculatorForm() {
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Mano de Obra</span>
+                      <span className="text-muted-foreground">Mano de Obra Base</span>
                       <span className="font-medium tabular-nums">
-                        <AnimatedNumber value={result.laborCostARS} currency="ARS" />
+                        <AnimatedNumber value={result.laborCostARS - result.riskPremiumARS} currency="ARS" />
                       </span>
                     </div>
                     {result.riskPremiumARS > 0 && (
                       <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Prima de Riesgo</span>
-                        <span className="font-medium tabular-nums">
-                          <AnimatedNumber value={result.riskPremiumARS} currency="ARS" />
+                        <span className="text-amber-600 dark:text-amber-400">Adicional por Complejidad</span>
+                        <span className="font-medium tabular-nums text-amber-600 dark:text-amber-400">
+                          +<AnimatedNumber value={result.riskPremiumARS} currency="ARS" />
                         </span>
                       </div>
                     )}
