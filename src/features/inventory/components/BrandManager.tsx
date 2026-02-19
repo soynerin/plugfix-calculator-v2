@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { BulkImportModal, BulkImportResult } from '@/shared/components/BulkImportModal';
+import { EmptyState } from '@/shared/ui/empty-state';
 import { Plus, Trash2, Tag, Upload } from 'lucide-react';
 
 export function BrandManager() {
@@ -92,15 +93,11 @@ export function BrandManager() {
 
         {/* Grid of Brand Cards */}
         {brands.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50/50 dark:bg-gray-900/20 dark:border-gray-700">
-            <Tag className="h-12 w-12 text-gray-400 mb-3" strokeWidth={1.5} />
-            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-1">
-              No hay marcas registradas
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Agrega tu primera marca para comenzar
-            </p>
-          </div>
+          <EmptyState
+            icon={Tag}
+            title="Tu catálogo de marcas está vacío"
+            description="Agrega las marcas que reparas (ej: Samsung, Apple, Xiaomi) para poder cotizar rápidamente."
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {brands.map((brand) => (

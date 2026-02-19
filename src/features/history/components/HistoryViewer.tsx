@@ -299,8 +299,8 @@ export function HistoryViewer() {
             {history.length === 0 ? (
               <EmptyState
                 icon={ClipboardList}
-                title="No hay reparaciones registradas"
-                description="Aún no se han guardado reparaciones. Ve a la pestaña Calculadora para crear tu primera reparación."
+                title="Aún no tienes reparaciones guardadas"
+                description="Tu historial está vacío. Ve a la Calculadora, genera una cotización y guárdala para verla aquí."
                 className="py-20"
               />
             ) : (

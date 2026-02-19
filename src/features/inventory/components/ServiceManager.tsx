@@ -112,8 +112,8 @@ export function ServiceManager() {
       {services.length === 0 ? (
         <EmptyState
           icon={Wrench}
-          title="No hay servicios configurados"
-          description="Agrega los servicios más comunes como 'Cambio de Pantalla' o 'Limpieza' para agilizar tus presupuestos"
+          title="Aún no has configurado tus servicios"
+          description="¡Agrega el primero para empezar a cotizar! Ejemplos: 'Cambio de Pantalla', 'Cambio de Batería', 'Conector de Carga'."
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

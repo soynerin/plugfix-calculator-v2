@@ -1,11 +1,12 @@
 import type { IDatabaseService, HistoryFilters, BulkImportResult } from '../interfaces/IDatabaseService';
 import type { Brand, RepairModel, Service, PriceConfig, RepairHistory } from '@/core/domain/models';
+import { DEFAULT_CONFIG } from '@/core/domain/models/PriceConfig';
 import { getSupabaseClient } from '@/lib/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * SupabaseAdapter - Implementación Cloud con PostgreSQL
- * Implementa IDatabaseService usando Supabase como backend
+ * SupabaseAdapter - Implementación Cloud con PostgreSQL (Multi-Tenant)
+ * Cada usuario (taller) tiene sus datos completamente aislados via RLS.
  */
 export class SupabaseAdapter implements IDatabaseService {
   private client: SupabaseClient<any>;
@@ -14,21 +15,38 @@ export class SupabaseAdapter implements IDatabaseService {
     this.client = getSupabaseClient();
   }
 
-  async initialize(): Promise<void> {
-    // Verificar que existe la configuración
-    const { error } = await this.client
-      .from('config')
-      .select('id')
-      .eq('id', 'main')
-      .single();
+  /**
+   * Obtiene el user_id del usuario autenticado actualmente.
+   * Lanza un error si no hay sesión activa.
+   */
+  private async getCurrentUserId(): Promise<string> {
+    const { data: { user }, error } = await this.client.auth.getUser();
+    if (error || !user) {
+      throw new Error('No hay sesión activa. Inicia sesión para continuar.');
+    }
+    return user.id;
+  }
 
-    if (error && error.code === 'PGRST116') {
-      // No existe config, crear una por defecto
+  /**
+   * Inicializa la configuración del taller si no existe.
+   * Se llama al arrancar la app para garantizar que el usuario tenga su config.
+   */
+  async initialize(): Promise<void> {
+    const userId = await this.getCurrentUserId();
+
+    const { data, error } = await this.client
+      .from('config')
+      .select('user_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    // Si no tiene config, insertamos los valores por defecto
+    if (!error && !data) {
       await this.client.from('config').insert({
-        id: 'main',
-        hourly_rate: 13000,
-        margin: 40,
-        usd_rate: 1200
+        user_id: userId,
+        hourly_rate: DEFAULT_CONFIG.hourlyRate,
+        margin: DEFAULT_CONFIG.margin,
+        usd_rate: DEFAULT_CONFIG.usdRate,
       });
     }
   }
@@ -327,9 +345,11 @@ export class SupabaseAdapter implements IDatabaseService {
   }
 
   async addService(service: Omit<Service, 'id'>): Promise<Service> {
+    const userId = await this.getCurrentUserId();
     const { data, error } = await this.client
       .from('services')
       .insert({
+        user_id: userId,
         name: service.name,
         hours: service.hours,
         description: service.description || null
@@ -370,22 +390,46 @@ export class SupabaseAdapter implements IDatabaseService {
   }
 
   // ============================================
-  // CONFIG
+  // CONFIG (Multi-Tenant: una fila por usuario)
   // ============================================
 
+  /**
+   * Obtiene la configuración del taller actual.
+   * Si el usuario no tiene config (es nuevo), la crea con valores por defecto.
+   */
   async getConfig(): Promise<PriceConfig> {
+    const userId = await this.getCurrentUserId();
+
     const { data, error } = await this.client
       .from('config')
       .select('*')
-      .eq('id', 'main')
-      .single();
+      .eq('user_id', userId)
+      .maybeSingle();
 
     if (error) throw new Error(`Failed to fetch config: ${error.message}`);
+
+    // Usuario nuevo: sin config — insertar valores por defecto
+    if (!data) {
+      const { data: inserted, error: insertError } = await this.client
+        .from('config')
+        .insert({
+          user_id: userId,
+          hourly_rate: DEFAULT_CONFIG.hourlyRate,
+          margin: DEFAULT_CONFIG.margin,
+          usd_rate: DEFAULT_CONFIG.usdRate,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw new Error(`Failed to create default config: ${insertError.message}`);
+      return this.mapConfigFromDB(inserted);
+    }
 
     return this.mapConfigFromDB(data);
   }
 
   async updateConfig(configData: Partial<PriceConfig>): Promise<PriceConfig> {
+    const userId = await this.getCurrentUserId();
     const updateData: Record<string, any> = {};
     if (configData.hourlyRate !== undefined) updateData.hourly_rate = configData.hourlyRate;
     if (configData.margin !== undefined) updateData.margin = configData.margin;
@@ -394,7 +438,7 @@ export class SupabaseAdapter implements IDatabaseService {
     const { data, error } = await this.client
       .from('config')
       .update(updateData)
-      .eq('id', 'main')
+      .eq('user_id', userId)
       .select()
       .single();
 
@@ -434,9 +478,11 @@ export class SupabaseAdapter implements IDatabaseService {
   }
 
   async addHistory(entry: Omit<RepairHistory, 'id'>): Promise<RepairHistory> {
+    const userId = await this.getCurrentUserId();
     const { data, error } = await this.client
       .from('history')
       .insert({
+        user_id: userId,
         client_name: entry.clientName || null,
         brand: entry.brand,
         model: entry.model,
@@ -547,20 +593,21 @@ export class SupabaseAdapter implements IDatabaseService {
   // ============================================
 
   async clearAll(): Promise<void> {
-    await this.client.from('history').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await this.client.from('models').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await this.client.from('services').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await this.client.from('brands').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    
-    // Reset config to defaults
+    const userId = await this.getCurrentUserId();
+
+    // Solo borra los datos del taller actual (RLS ya lo garantiza, pero somos explícitos)
+    await this.client.from('history').delete().eq('user_id', userId);
+    await this.client.from('services').delete().eq('user_id', userId);
+
+    // Reset config del usuario a valores por defecto
     await this.client
       .from('config')
       .update({
-        hourly_rate: 13000,
-        margin: 40,
-        usd_rate: 1200
+        hourly_rate: DEFAULT_CONFIG.hourlyRate,
+        margin: DEFAULT_CONFIG.margin,
+        usd_rate: DEFAULT_CONFIG.usdRate,
       })
-      .eq('id', 'main');
+      .eq('user_id', userId);
   }
 
   async backup(): Promise<Blob> {
@@ -706,7 +753,7 @@ export class SupabaseAdapter implements IDatabaseService {
 
   private mapConfigFromDB(data: any): PriceConfig {
     return {
-      id: 'main',
+      id: data.user_id,   // user_id es la PK en la nueva estructura
       hourlyRate: data.hourly_rate,
       margin: data.margin,
       usdRate: data.usd_rate,
