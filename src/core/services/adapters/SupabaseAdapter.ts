@@ -434,7 +434,6 @@ export class SupabaseAdapter implements IDatabaseService {
       .insert({
         user_id: userId,
         name: partType.name,
-        risk_multiplier: partType.riskMultiplier,
       })
       .select()
       .single();
@@ -447,7 +446,6 @@ export class SupabaseAdapter implements IDatabaseService {
   async updatePartType(id: string, partTypeData: Partial<PartType>): Promise<PartType> {
     const updateData: Record<string, any> = {};
     if (partTypeData.name !== undefined) updateData.name = partTypeData.name;
-    if (partTypeData.riskMultiplier !== undefined) updateData.risk_multiplier = partTypeData.riskMultiplier;
 
     const { data, error } = await this.client
       .from('part_types')
@@ -476,7 +474,6 @@ export class SupabaseAdapter implements IDatabaseService {
     const rows = partTypes.map(p => ({
       user_id: userId,
       name: p.name,
-      risk_multiplier: p.riskMultiplier,
     }));
 
     const { error } = await this.client.from('part_types').insert(rows);
@@ -861,7 +858,6 @@ export class SupabaseAdapter implements IDatabaseService {
     return {
       id: data.id,
       name: data.name,
-      riskMultiplier: data.risk_multiplier,
       ...(data.created_at && { createdAt: new Date(data.created_at) }),
       ...(data.updated_at && { updatedAt: new Date(data.updated_at) })
     };

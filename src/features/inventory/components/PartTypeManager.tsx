@@ -15,38 +15,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
-import { Plus, Trash2, Package, Download, Pencil, ShieldAlert } from 'lucide-react';
+import { Plus, Trash2, Package, Download, Pencil } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 
 // ─── Tipos predeterminados ─────────────────────────────────────────────────────
 
 const DEFAULT_PART_TYPES: Omit<PartType, 'id'>[] = [
-  { name: 'Pantalla OLED / AMOLED',  riskMultiplier: 1.5 },
-  { name: 'Pantalla LCD',             riskMultiplier: 1.3 },
-  { name: 'Batería',                  riskMultiplier: 1.0 },
-  { name: 'Pin de Carga',             riskMultiplier: 1.2 },
-  { name: 'Placa Madre / Microelectrónica', riskMultiplier: 2.0 },
-  { name: 'Tapa Trasera',             riskMultiplier: 1.1 },
-  { name: 'Cámara',                   riskMultiplier: 1.2 },
+  { name: 'Pantalla OLED / AMOLED' },
+  { name: 'Pantalla LCD' },
+  { name: 'Batería' },
+  { name: 'Pin de Carga' },
+  { name: 'Placa Madre / Microelectrónica' },
+  { name: 'Tapa Trasera' },
+  { name: 'Cámara' },
 ];
-
-// ─── Badge de Multiplicador ────────────────────────────────────────────────────
-
-function RiskBadge({ value }: { value: number }) {
-  const color =
-    value >= 1.8
-      ? 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400'
-      : value >= 1.3
-      ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
-      : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
-
-  return (
-    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${color}`}>
-      <ShieldAlert className="h-3 w-3" />
-      <span>Riesgo: {value.toFixed(1)}×</span>
-    </div>
-  );
-}
 
 // ─── Componente principal ──────────────────────────────────────────────────────
 
@@ -58,19 +40,16 @@ export function PartTypeManager() {
   const { confirm } = useConfirm();
   const { toast } = useToast();
 
-  const [formData, setFormData] = useState({ name: '', riskMultiplier: '1.0' });
+  const [formData, setFormData] = useState({ name: '' });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selected, setSelected] = useState<{ id: string; name: string; riskMultiplier: string } | null>(null);
+  const [selected, setSelected] = useState<{ id: string; name: string } | null>(null);
 
-  const isFormValid =
-    formData.name.trim() !== '' &&
-    formData.riskMultiplier !== '' &&
-    parseFloat(formData.riskMultiplier) >= 0.1;
+  const isFormValid = formData.name.trim() !== '';
 
   const handleAdd = () => {
     if (!isFormValid) return;
-    addPartType({ name: formData.name.trim(), riskMultiplier: parseFloat(formData.riskMultiplier) });
-    setFormData({ name: '', riskMultiplier: '1.0' });
+    addPartType({ name: formData.name.trim() });
+    setFormData({ name: '' });
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -83,13 +62,13 @@ export function PartTypeManager() {
   };
 
   const handleEditClick = (pt: PartType) => {
-    setSelected({ id: pt.id, name: pt.name, riskMultiplier: pt.riskMultiplier.toString() });
+    setSelected({ id: pt.id, name: pt.name });
     setIsEditModalOpen(true);
   };
 
   const handleUpdate = () => {
-    if (!selected || !selected.name.trim() || parseFloat(selected.riskMultiplier) < 0.1) return;
-    updatePartType({ id: selected.id, data: { name: selected.name.trim(), riskMultiplier: parseFloat(selected.riskMultiplier) } });
+    if (!selected || !selected.name.trim()) return;
+    updatePartType({ id: selected.id, data: { name: selected.name.trim() } });
     setIsEditModalOpen(false);
     setSelected(null);
   };
@@ -121,37 +100,18 @@ export function PartTypeManager() {
       <Card>
         <CardHeader>
           <CardTitle>Nuevo Tipo de Repuesto</CardTitle>
-          <CardDescription>Define el nombre y el multiplicador de riesgo de instalación</CardDescription>
+          <CardDescription>Define las categorías de repuestos que utilizas en el taller (ej: Pantalla, Batería, Pin de Carga).</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
-            <div className="grid grid-cols-4 gap-4">
-              {/* Nombre — 75% */}
-              <div className="col-span-3">
-                <Label>Nombre del Tipo de Repuesto</Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  onKeyDown={(e) => e.key === 'Enter' && isFormValid && handleAdd()}
-                  placeholder="Ej: Pantalla OLED"
-                />
-              </div>
-              {/* Multiplicador — 25% */}
-              <div className="col-span-1">
-                <Label>Multiplicador</Label>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0.1"
-                    value={formData.riskMultiplier}
-                    onChange={(e) => setFormData({ ...formData, riskMultiplier: e.target.value })}
-                    onKeyDown={(e) => e.key === 'Enter' && isFormValid && handleAdd()}
-                    className="pr-6"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">×</span>
-                </div>
-              </div>
+            <div>
+              <Label>Nombre del Tipo de Repuesto</Label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onKeyDown={(e) => e.key === 'Enter' && isFormValid && handleAdd()}
+                placeholder="Ej: Pantalla OLED"
+              />
             </div>
 
             <Button
@@ -210,10 +170,9 @@ export function PartTypeManager() {
 
                   {/* Contenido */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 leading-tight">
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100 leading-tight">
                       {pt.name}
                     </h3>
-                    <RiskBadge value={pt.riskMultiplier} />
                   </div>
 
                   {/* Acciones */}
@@ -251,7 +210,7 @@ export function PartTypeManager() {
           <DialogHeader>
             <DialogTitle>Editar Tipo de Repuesto</DialogTitle>
             <DialogDescription>
-              Modificá el nombre y el multiplicador de riesgo.
+              Modificá el nombre del tipo de repuesto.
             </DialogDescription>
           </DialogHeader>
 
@@ -265,21 +224,6 @@ export function PartTypeManager() {
                   onChange={(e) => setSelected({ ...selected, name: e.target.value })}
                   placeholder="Ej: Pantalla OLED"
                 />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-pt-mult">Multiplicador de Riesgo</Label>
-                <div className="relative">
-                  <Input
-                    id="edit-pt-mult"
-                    type="number"
-                    step="0.1"
-                    min="0.1"
-                    value={selected.riskMultiplier}
-                    onChange={(e) => setSelected({ ...selected, riskMultiplier: e.target.value })}
-                    className="pr-6"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">×</span>
-                </div>
               </div>
             </div>
           )}
@@ -297,7 +241,6 @@ export function PartTypeManager() {
               onClick={handleUpdate}
               disabled={
                 !selected?.name.trim() ||
-                parseFloat(selected?.riskMultiplier || '0') < 0.1 ||
                 isUpdating
               }
               className="bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white"

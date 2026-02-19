@@ -269,16 +269,11 @@ export function CalculatorForm() {
               <SelectContent>
                 {partTypes.map((pt) => (
                   <SelectItem key={pt.id} value={pt.id}>
-                    {pt.name} — {pt.riskMultiplier}×
+                    {pt.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {selectedPartType && selectedPartType.riskMultiplier !== 1.0 && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Multiplicador de riesgo: {selectedPartType.riskMultiplier}×
-              </p>
-            )}
           </div>
 
           {/* Diagnóstico opcional */}
