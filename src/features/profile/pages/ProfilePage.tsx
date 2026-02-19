@@ -32,7 +32,7 @@ const personalSchema = z.object({
 
 const securitySchema = z
   .object({
-    password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -154,7 +154,10 @@ export function ProfilePage() {
       if (error) {
         toast({ title: 'Error', description: error.message, variant: 'destructive' });
       } else {
-        toast({ title: '¡Contraseña actualizada!', description: 'Tu contraseña fue cambiada correctamente.' });
+        toast({
+          title: '¡Contraseña configurada!',
+          description: 'Contraseña configurada correctamente. Ahora puedes usarla para iniciar sesión.',
+        });
         securityForm.reset();
       }
     } finally {
@@ -449,7 +452,7 @@ export function ProfilePage() {
                         <Input
                           id="password"
                           type={showPassword ? 'text' : 'password'}
-                          placeholder="Mínimo 8 caracteres"
+                          placeholder="Mínimo 6 caracteres"
                           autoComplete="new-password"
                           {...securityForm.register('password')}
                         />
