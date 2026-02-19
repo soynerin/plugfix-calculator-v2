@@ -76,6 +76,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const {
     register,
@@ -85,6 +86,25 @@ export function LoginPage() {
     resolver: zodResolver(loginSchema),
     defaultValues: { rememberMe: true },
   });
+
+  const handleGoogleLogin = async () => {
+    setServerError(null);
+    setIsGoogleLoading(true);
+    try {
+      const { error } = await getSupabaseClient().auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      // El navegador redirige a Google; no reseteamos isGoogleLoading intencionalmente.
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'No se pudo iniciar sesión con Google. Intentá de nuevo.';
+      console.error('[Google OAuth]', message);
+      setServerError(message);
+      setIsGoogleLoading(false);
+    }
+  };
 
   const onSubmit = async (data: LoginFormValues) => {
     setServerError(null);
@@ -262,18 +282,31 @@ export function LoginPage() {
         <div className="grid grid-cols-3 gap-3">
           <button
             type="button"
-            onClick={() => {/* TODO: supabase.auth.signInWithOAuth({ provider: 'google' }) */}}
-            className="flex items-center justify-center gap-2 h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1"
+            onClick={handleGoogleLogin}
+            disabled={isGoogleLoading}
+            className={cn(
+              'flex items-center justify-center gap-2 h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1',
+              isGoogleLoading
+                ? 'opacity-60 cursor-not-allowed'
+                : 'hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600',
+            )}
             aria-label="Ingresar con Google"
           >
-            <GoogleIcon />
-            <span className="hidden sm:inline">Google</span>
+            {isGoogleLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <GoogleIcon />
+            )}
+            <span className="hidden sm:inline">
+              {isGoogleLoading ? 'Redirigiendo...' : 'Google'}
+            </span>
           </button>
 
           <button
             type="button"
-            onClick={() => {/* TODO: supabase.auth.signInWithOAuth({ provider: 'azure' }) */}}
-            className="flex items-center justify-center gap-2 h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1"
+            disabled={true}
+            title="Próximamente"
+            className="flex items-center justify-center gap-2 h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium transition-colors opacity-50 cursor-not-allowed"
             aria-label="Ingresar con Microsoft"
           >
             <MicrosoftIcon />
@@ -282,8 +315,9 @@ export function LoginPage() {
 
           <button
             type="button"
-            onClick={() => {/* TODO: supabase.auth.signInWithOAuth({ provider: 'apple' }) */}}
-            className="flex items-center justify-center gap-2 h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1"
+            disabled={true}
+            title="Próximamente"
+            className="flex items-center justify-center gap-2 h-10 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium transition-colors opacity-50 cursor-not-allowed"
             aria-label="Ingresar con Apple"
           >
             <AppleIcon />
