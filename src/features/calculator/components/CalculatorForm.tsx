@@ -136,25 +136,28 @@ export function CalculatorForm() {
     });
   };
 
-  const handleWhatsApp = () => {
-    if (!result || !selectedBrand || !selectedModel || !selectedService) return;
+  const handleWhatsAppShare = () => {
+    if (!result || result.finalPriceARS <= 0 || !selectedBrand || !selectedModel) {
+      toast({
+        title: "Cotización incompleta",
+        description: "Completa la marca, el modelo y el servicio antes de compartir.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    const lines: string[] = [];
-    if (formData.clientName.trim()) lines.push(`Para: ${formData.clientName.trim()}`);
-    lines.push(
-      '── Cotización de Reparación ──',
-      `Equipo: ${selectedBrand.name} ${selectedModel.name}`,
-      `Servicio: ${selectedService.name}`,
-      '─────────────────────────────',
-      `Repuestos: ${formatARS(result.partCostARS)}`,
-      `Mano de Obra: ${formatARS(result.laborCostARS)}`,
-      '─────────────────────────────',
-      `TOTAL: ${formatARS(result.finalPriceARS)}`,
-    );
+    const saludo = formData.clientName.trim()
+      ? `Hola ${formData.clientName.trim()},`
+      : 'Hola!';
 
-    const message = encodeURIComponent(lines.join('\n'));
-    console.log('[WhatsApp] Mensaje generado:\n', lines.join('\n'));
-    window.open(`https://wa.me/?text=${message}`, '_blank', 'noopener,noreferrer');
+    const diagnosticoTexto = formData.diagnosis.trim()
+      ? `\nDiagnostico: ${formData.diagnosis.trim()}`
+      : '';
+
+    const mensaje = `${saludo}\nTe comparto el presupuesto detallado para tu reparacion:\n\nEquipo: ${selectedBrand.name} ${selectedModel.name}\nServicio: ${selectedService?.name ?? ''}${diagnosticoTexto}\n\n*Total estimado: ${formatARS(result.finalPriceARS)}*\n*Presupuesto valido por 15 dias.*\n\nQuedo a tu disposicion por cualquier consulta. Saludos!`;
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -497,7 +500,7 @@ export function CalculatorForm() {
                       variant="outline"
                       size="sm"
                       className="gap-2 text-gray-600 dark:text-gray-300"
-                      onClick={handleWhatsApp}
+                      onClick={handleWhatsAppShare}
                     >
                       <MessageCircle className="h-4 w-4" />
                       Enviar por WhatsApp
