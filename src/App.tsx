@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   SignUpPage,
@@ -12,10 +12,9 @@ import {
   useAuth,
 } from '@/features/auth';
 import { motion } from 'framer-motion';
-import { LogOut, UserCircle } from 'lucide-react';
 import { ProfilePage } from '@/features/profile';
+import { UserMenu } from '@/shared/components/UserMenu';
 import { db } from '@/core/services';
-import { getSupabaseClient } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { CalculatorForm } from '@/features/calculator/components/CalculatorForm';
@@ -52,11 +51,6 @@ function MainLayout() {
     user?.email ||
     'Usuario';
 
-  const handleLogout = async () => {
-    const supabase = getSupabaseClient();
-    await supabase.auth.signOut();
-  };
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -69,30 +63,10 @@ function MainLayout() {
                 Sistema de cálculo de precios para reparaciones
               </p>
             </div>
-            {/* User info + logout */}
+            {/* Right: theme toggle + user menu */}
             <div className="flex items-center gap-2 md:gap-3">
-              <Link
-                to="/profile"
-                className="hidden sm:flex flex-col items-end group"
-                title="Ver mi perfil"
-              >
-                <span className="text-xs text-muted-foreground leading-none mb-0.5 flex items-center gap-1">
-                  Sesión activa
-                  <UserCircle className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </span>
-                <span className="text-sm font-medium text-primary-600 dark:text-primary-400 truncate max-w-[180px] group-hover:underline underline-offset-2">
-                  {displayName}
-                </span>
-              </Link>
-              <button
-                onClick={handleLogout}
-                title="Cerrar sesión"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                <span className="hidden md:inline">Cerrar sesión</span>
-              </button>
               <ThemeToggle />
+              <UserMenu />
             </div>
           </div>
         </div>

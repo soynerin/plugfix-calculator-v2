@@ -4,7 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Loader2, Camera, User, Lock, LogOut, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Loader2, Camera, User, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { UserMenu } from '@/shared/components/UserMenu';
 import { useAuth } from '@/features/auth';
 import { ProfileService } from '@/core/services/ProfileService';
 import { getSupabaseClient } from '@/lib/supabase';
@@ -118,11 +119,6 @@ export function ProfilePage() {
   const email = user?.email ?? '';
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
-
-  const handleLogout = async () => {
-    const supabase = getSupabaseClient();
-    await supabase.auth.signOut();
-  };
 
   const handleSavePersonal = async (values: PersonalFormValues) => {
     setIsSavingPersonal(true);
@@ -240,23 +236,10 @@ export function ProfilePage() {
               <p className="text-xs text-muted-foreground hidden md:block">Mi Perfil</p>
             </div>
           </div>
-          {/* Right: user info + actions */}
+          {/* Right: theme toggle + user menu */}
           <div className="flex items-center gap-2 md:gap-3">
-            <div className="hidden sm:flex flex-col items-end">
-              <span className="text-xs text-muted-foreground leading-none mb-0.5">Sesión activa</span>
-              <span className="text-sm font-medium text-primary-600 dark:text-primary-400 truncate max-w-[180px]">
-                {displayName}
-              </span>
-            </div>
-            <button
-              onClick={handleLogout}
-              title="Cerrar sesión"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Cerrar sesión</span>
-            </button>
             <ThemeToggle />
+            <UserMenu />
           </div>
         </div>
       </div>
