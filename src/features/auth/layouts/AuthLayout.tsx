@@ -7,29 +7,34 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen bg-slate-900 relative flex items-center justify-center p-4 overflow-hidden">
-      {/* Ambient gradient blobs — tonos turquesa muy difuminados */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
-        <div className="absolute -top-48 -left-48 w-[500px] h-[500px] bg-primary-500/10 rounded-full blur-[120px]" />
-        <div className="absolute -bottom-48 -right-48 w-[500px] h-[500px] bg-primary-400/8 rounded-full blur-[120px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-primary-600/5 rounded-full blur-[100px]" />
-        {/* Subtle grid overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage:
-              'linear-gradient(hsl(177 96% 31% / 1) 1px, transparent 1px), linear-gradient(90deg, hsl(177 96% 31% / 1) 1px, transparent 1px)',
-            backgroundSize: '40px 40px',
-          }}
-        />
+    <div className="relative min-h-screen w-full overflow-hidden flex items-center justify-center p-4">
+      {/* Layer 1 — Background image */}
+      <div
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: "url('/bg_image.webp')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      />
+
+      {/* Layer 2 — Dark overlay for readability */}
+      <div className="absolute inset-0 z-10 bg-black/60 backdrop-blur-sm" />
+
+      {/* Ambient gradient blobs — tonos turquesa sobre el overlay */}
+      <div className="absolute inset-0 z-20 overflow-hidden pointer-events-none select-none">
+        <div className="absolute -top-48 -left-48 w-[500px] h-[500px] bg-primary-500/15 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-48 -right-48 w-[500px] h-[500px] bg-primary-400/12 rounded-full blur-[120px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-primary-600/8 rounded-full blur-[100px]" />
       </div>
 
-      {/* Central container */}
+      {/* Layer 3 — Central container */}
       <motion.div
         initial={{ opacity: 0, y: 28, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-md"
+        className="relative z-30 w-full max-w-md"
       >
         {/* Branding */}
         <div className="text-center mb-8 select-none">
