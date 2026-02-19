@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { SignUpPage } from '@/features/auth';
 import { motion } from 'framer-motion';
 import { db } from '@/core/services';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
@@ -73,6 +75,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ConfirmProvider>
+        <Routes>
+          <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/register" element={<SignUpPage />} />
+          <Route
+            path="/*"
+            element={
         <div className="min-h-screen bg-background">
         {/* Header */}
         <header className="border-b bg-card">
@@ -216,6 +224,9 @@ function App() {
         {/* Mobile Navigation Bar */}
         <MobileNavBar activeTab={activeTab} onTabChange={setActiveTab} />
       </div>
+            }
+          />
+        </Routes>
       <Toaster />
       </ConfirmProvider>
     </QueryClientProvider>
