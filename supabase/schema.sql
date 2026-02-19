@@ -56,18 +56,23 @@ CREATE TABLE services (
 CREATE INDEX idx_services_name ON services(name);
 
 -- ============================================
--- CONFIG TABLE (Singleton)
+-- CONFIG TABLE (one row per authenticated user)
 -- ============================================
 CREATE TABLE config (
-  id VARCHAR(10) PRIMARY KEY CHECK (id = 'main'),
+  user_id UUID NOT NULL DEFAULT auth.uid() PRIMARY KEY
+    REFERENCES auth.users(id) ON DELETE CASCADE,
   hourly_rate DECIMAL(10,2) NOT NULL CHECK (hourly_rate > 0),
   margin DECIMAL(5,2) NOT NULL CHECK (margin >= 0 AND margin <= 100),
   usd_rate DECIMAL(10,2) NOT NULL CHECK (usd_rate > 0),
+  -- Risk index multipliers (customizable per workshop)
+  tier_multipliers  JSONB NOT NULL DEFAULT '{"premium": 2.0, "alta": 1.5, "media": 1.2, "baja": 1.0}'::JSONB,
+  brand_multipliers JSONB NOT NULL DEFAULT '{"apple": 1.3, "samsung": 1.2, "motorola": 1.0, "xiaomi": 1.0, "otros": 1.0}'::JSONB,
+  part_multipliers  JSONB NOT NULL DEFAULT '{"microelectronica": 2.0, "pantalla": 1.5, "pin_carga": 1.2, "bateria": 1.0}'::JSONB,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Ensure only one config row exists
-CREATE UNIQUE INDEX idx_config_singleton ON config(id);
+-- Index for fast per-user lookups
+CREATE INDEX IF NOT EXISTS idx_config_user_id ON config(user_id);
 
 -- ============================================
 -- HISTORY TABLE
@@ -222,10 +227,7 @@ CREATE POLICY "Allow public delete on history"
 -- SEED DATA
 -- ============================================
 
--- Insert default config
-INSERT INTO config (id, hourly_rate, margin, usd_rate)
-VALUES ('main', 13000, 40, 1200)
-ON CONFLICT (id) DO NOTHING;
+-- Note: config rows are created per user on first login, no seed needed.
 
 -- Insert default brands
 INSERT INTO brands (id, name) VALUES

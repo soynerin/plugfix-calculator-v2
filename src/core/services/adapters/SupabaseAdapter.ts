@@ -47,6 +47,9 @@ export class SupabaseAdapter implements IDatabaseService {
         hourly_rate: DEFAULT_CONFIG.hourlyRate,
         margin: DEFAULT_CONFIG.margin,
         usd_rate: DEFAULT_CONFIG.usdRate,
+        tier_multipliers: DEFAULT_CONFIG.tierMultipliers,
+        brand_multipliers: DEFAULT_CONFIG.brandMultipliers,
+        part_multipliers: DEFAULT_CONFIG.partMultipliers,
       });
     }
   }
@@ -417,6 +420,9 @@ export class SupabaseAdapter implements IDatabaseService {
           hourly_rate: DEFAULT_CONFIG.hourlyRate,
           margin: DEFAULT_CONFIG.margin,
           usd_rate: DEFAULT_CONFIG.usdRate,
+          tier_multipliers: DEFAULT_CONFIG.tierMultipliers,
+          brand_multipliers: DEFAULT_CONFIG.brandMultipliers,
+          part_multipliers: DEFAULT_CONFIG.partMultipliers,
         })
         .select()
         .single();
@@ -434,6 +440,9 @@ export class SupabaseAdapter implements IDatabaseService {
     if (configData.hourlyRate !== undefined) updateData.hourly_rate = configData.hourlyRate;
     if (configData.margin !== undefined) updateData.margin = configData.margin;
     if (configData.usdRate !== undefined) updateData.usd_rate = configData.usdRate;
+    if (configData.tierMultipliers !== undefined) updateData.tier_multipliers = configData.tierMultipliers;
+    if (configData.brandMultipliers !== undefined) updateData.brand_multipliers = configData.brandMultipliers;
+    if (configData.partMultipliers !== undefined) updateData.part_multipliers = configData.partMultipliers;
 
     const { data, error } = await this.client
       .from('config')
@@ -606,6 +615,9 @@ export class SupabaseAdapter implements IDatabaseService {
         hourly_rate: DEFAULT_CONFIG.hourlyRate,
         margin: DEFAULT_CONFIG.margin,
         usd_rate: DEFAULT_CONFIG.usdRate,
+        tier_multipliers: DEFAULT_CONFIG.tierMultipliers,
+        brand_multipliers: DEFAULT_CONFIG.brandMultipliers,
+        part_multipliers: DEFAULT_CONFIG.partMultipliers,
       })
       .eq('user_id', userId);
   }
@@ -757,6 +769,9 @@ export class SupabaseAdapter implements IDatabaseService {
       hourlyRate: data.hourly_rate,
       margin: data.margin,
       usdRate: data.usd_rate,
+      tierMultipliers:  data.tier_multipliers  ?? DEFAULT_CONFIG.tierMultipliers,
+      brandMultipliers: data.brand_multipliers ?? DEFAULT_CONFIG.brandMultipliers,
+      partMultipliers:  data.part_multipliers  ?? DEFAULT_CONFIG.partMultipliers,
       ...(data.updated_at && { updatedAt: new Date(data.updated_at) })
     };
   }

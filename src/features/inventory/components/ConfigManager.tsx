@@ -5,29 +5,158 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
-import { DollarSign, TrendingUp, Percent, Sparkles, RefreshCw } from 'lucide-react';
+import {
+  DollarSign, TrendingUp, Percent, Sparkles, RefreshCw,
+  ChevronDown, Layers, Smartphone, Wrench,
+} from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 import { useToast } from '@/shared/hooks/use-toast';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { DEFAULT_CONFIG } from '@/core/domain/models/PriceConfig';
+import type { TierMultipliers, BrandMultipliers, PartMultipliers } from '@/core/domain/models/PriceConfig';
 
+// --- Stepper input for multiplier values --------------------------------------
+interface MultiplierFieldProps {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}
+
+function MultiplierField({ label, value, onChange }: MultiplierFieldProps) {
+  const adjust = (delta: number) => {
+    const next = Math.round((value + delta) * 10) / 10;
+    if (next >= 0.1) onChange(next);
+  };
+  return (
+    <div className="flex items-center justify-between gap-2 py-1">
+      <span className="text-sm text-foreground flex-1">{label}</span>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => adjust(-0.1)}
+          className="w-7 h-7 rounded border border-input bg-background hover:bg-muted flex items-center justify-center text-base font-medium leading-none transition-colors select-none"
+        >
+          -
+        </button>
+        <Input
+          type="number"
+          step={0.1}
+          min={0.1}
+          value={value.toFixed(1)}
+          onChange={(e) => {
+            const v = parseFloat(e.target.value);
+            if (!isNaN(v) && v >= 0.1) onChange(Math.round(v * 10) / 10);
+          }}
+          className="w-16 text-center tabular-nums h-7 text-sm px-1"
+        />
+        <button
+          type="button"
+          onClick={() => adjust(0.1)}
+          className="w-7 h-7 rounded border border-input bg-background hover:bg-muted flex items-center justify-center text-base font-medium leading-none transition-colors select-none"
+        >
+          +
+        </button>
+        <span className="text-xs text-muted-foreground w-4 text-right">×</span>
+      </div>
+    </div>
+  );
+}
+
+// --- Collapsible accordion section --------------------------------------------
+interface AccordionSectionProps {
+  icon: React.ReactNode;
+  title: string;
+  badge?: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}
+
+function AccordionSection({ icon, title, badge, isOpen, onToggle, children }: AccordionSectionProps) {
+  return (
+    <div className="rounded-lg border border-input overflow-hidden">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-4 py-3 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
+      >
+        <div className="flex items-center gap-2.5">
+          <span className="text-primary-600">{icon}</span>
+          <span className="text-sm font-semibold">{title}</span>
+          {badge && (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
+              {badge}
+            </span>
+          )}
+        </div>
+        <motion.span
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="text-muted-foreground"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </motion.span>
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            key="content"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 py-4 border-t border-input space-y-1">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// --- Main component ------------------------------------------------------------
 export function ConfigManager() {
   const { config, updateConfigAsync, isLoading, isUpdating } = useConfig();
   const { toast } = useToast();
   const { isLoading: isDolarBlueLoading, refetch: refetchDolarBlue } = useDolarBlue();
+
   const [formData, setFormData] = useState({
     hourlyRate: '13000',
     margin: '40',
     usdRate: '1200',
   });
 
-  // Sincronizar formData con config cuando se carga desde la base de datos
+  const [multipliers, setMultipliers] = useState({
+    tier:  { ...DEFAULT_CONFIG.tierMultipliers },
+    brand: { ...DEFAULT_CONFIG.brandMultipliers },
+    part:  { ...DEFAULT_CONFIG.partMultipliers },
+  });
+
+  // Economics section open by default; multiplier sections closed
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['economics']));
+  const toggleSection = (id: string) =>
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  // Sync with DB config on load
   useEffect(() => {
     if (config) {
       setFormData({
         hourlyRate: config.hourlyRate.toString(),
         margin: config.margin.toString(),
         usdRate: config.usdRate.toString(),
+      });
+      setMultipliers({
+        tier:  { ...DEFAULT_CONFIG.tierMultipliers,  ...config.tierMultipliers },
+        brand: { ...DEFAULT_CONFIG.brandMultipliers, ...config.brandMultipliers },
+        part:  { ...DEFAULT_CONFIG.partMultipliers,  ...config.partMultipliers },
       });
     }
   }, [config]);
@@ -38,6 +167,9 @@ export function ConfigManager() {
         hourlyRate: parseFloat(formData.hourlyRate),
         margin: parseFloat(formData.margin),
         usdRate: parseFloat(formData.usdRate),
+        tierMultipliers:  multipliers.tier,
+        brandMultipliers: multipliers.brand,
+        partMultipliers:  multipliers.part,
       });
       toast({
         title: '✅ Configuración guardada',
@@ -60,10 +192,12 @@ export function ConfigManager() {
         margin: config.margin.toString(),
         usdRate: config.usdRate.toString(),
       });
-      toast({
-        title: 'Valores restaurados',
-        description: 'Se han restaurado los últimos valores guardados',
+      setMultipliers({
+        tier:  { ...DEFAULT_CONFIG.tierMultipliers,  ...config.tierMultipliers },
+        brand: { ...DEFAULT_CONFIG.brandMultipliers, ...config.brandMultipliers },
+        part:  { ...DEFAULT_CONFIG.partMultipliers,  ...config.partMultipliers },
       });
+      toast({ title: 'Valores restaurados', description: 'Se han restaurado los últimos valores guardados' });
     }
   };
 
@@ -87,6 +221,14 @@ export function ConfigManager() {
     }
   };
 
+  // Typed setters for each multiplier group
+  const setTier  = (key: keyof TierMultipliers,  val: number) =>
+    setMultipliers(p => ({ ...p, tier:  { ...p.tier,  [key]: val } }));
+  const setBrand = (key: keyof BrandMultipliers, val: number) =>
+    setMultipliers(p => ({ ...p, brand: { ...p.brand, [key]: val } }));
+  const setPart  = (key: keyof PartMultipliers,  val: number) =>
+    setMultipliers(p => ({ ...p, part:  { ...p.part,  [key]: val } }));
+
   // Simulación en tiempo real - Caso ejemplo: Repuesto de $100 USD
   const simulation = useMemo(() => {
     const partCostUSD = 100;
@@ -94,21 +236,14 @@ export function ConfigManager() {
     const margin = parseFloat(formData.margin) || 0;
     const usdRate = parseFloat(formData.usdRate) || 1;
     const laborHours = 1;
-    const riskFactor = 1.5; // Factor de riesgo ejemplo
+    const riskFactor = 1.5;
 
-    // Paso 1: Convertir repuesto a ARS
     const partCostARS = partCostUSD * usdRate;
-
-    // Paso 2: Aplicar margen
     const partCostWithMargin = partCostARS * (1 + margin / 100);
     const marginAmount = partCostWithMargin - partCostARS;
-
-    // Paso 3: Calcular mano de obra con riesgo
     const laborCostARS = hourlyRate * laborHours * riskFactor;
-
-    // Paso 4: Total
     const subtotal = partCostWithMargin + laborCostARS;
-    const finalPrice = Math.ceil(subtotal / 100) * 100; // Redondeo a centena
+    const finalPrice = Math.ceil(subtotal / 100) * 100;
 
     return {
       partCostUSD,
@@ -130,127 +265,162 @@ export function ConfigManager() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      {/* Columna Izquierda: Inputs de Configuración */}
+      {/* -- Columna Izquierda: Acordeón de configuración -- */}
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary-600" />
             Configuración de Precios
           </CardTitle>
-          <CardDescription>Variables económicas del negocio</CardDescription>
+          <CardDescription>Variables económicas e índices de riesgo del taller</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Inputs con prefijos/sufijos visuales */}
-          <div className="grid gap-5">
-            {/* Tarifa por Hora */}
-            <div>
-              <Label htmlFor="hourlyRate" className="text-sm font-medium">
-                Tarifa por Hora
-              </Label>
-              <div className="relative mt-1.5">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
-                  $
-                </div>
-                <Input
-                  id="hourlyRate"
-                  type="number"
-                  step="100"
-                  value={formData.hourlyRate}
-                  onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
-                  className="pl-7 pr-12"
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                  ARS
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1.5">
-                Costo de tu hora de trabajo técnico
-              </p>
-            </div>
+        <CardContent className="space-y-3">
 
-            {/* Margen de Ganancia */}
-            <div>
-              <Label htmlFor="margin" className="text-sm font-medium">
-                Margen de Ganancia
-              </Label>
-              <div className="relative mt-1.5">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
-                  <Percent className="h-4 w-4" />
+          {/* -- Sección 1: Variables Económicas -- */}
+          <AccordionSection
+            icon={<DollarSign className="h-4 w-4" />}
+            title="Variables Económicas"
+            isOpen={openSections.has('economics')}
+            onToggle={() => toggleSection('economics')}
+          >
+            <div className="grid gap-4 pt-1">
+              {/* Tarifa por Hora */}
+              <div>
+                <Label htmlFor="hourlyRate" className="text-sm font-medium">Tarifa por Hora</Label>
+                <div className="relative mt-1.5">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">$</div>
+                  <Input
+                    id="hourlyRate"
+                    type="number"
+                    step="100"
+                    value={formData.hourlyRate}
+                    onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
+                    className="pl-7 pr-12"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">ARS</div>
                 </div>
-                <Input
-                  id="margin"
-                  type="number"
-                  step="1"
-                  min="0"
-                  max="100"
-                  value={formData.margin}
-                  onChange={(e) => setFormData({ ...formData, margin: e.target.value })}
-                  className="pl-10 pr-8"
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-lg">
-                  %
-                </div>
+                <p className="text-xs text-muted-foreground mt-1.5">Costo de tu hora de trabajo técnico</p>
               </div>
-              <p className="text-xs text-muted-foreground mt-1.5">
-                Este porcentaje se aplica sobre el costo del repuesto
-              </p>
-            </div>
 
-            {/* Tipo de Cambio (Input Group Visual) */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <Label htmlFor="usdRate" className="text-sm font-medium">
-                  Tipo de Cambio (Dólar)
-                </Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleUpdateDolarBlue}
-                  disabled={isDolarBlueLoading}
-                  className="h-7 text-xs gap-1.5 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${isDolarBlueLoading ? 'animate-spin' : ''}`} />
-                  {isDolarBlueLoading ? 'Actualizando...' : 'Actualizar con Dolar Blue'}
-                </Button>
-              </div>
-              <div className="flex items-center mt-1.5 rounded-md overflow-hidden border border-input focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 transition-all">
-                {/* Prefijo Estático: "1 USD =" */}
-                <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-800 border-r border-input">
-                  <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                    1 USD =
-                  </span>
+              {/* Margen de Ganancia */}
+              <div>
+                <Label htmlFor="margin" className="text-sm font-medium">Margen de Ganancia</Label>
+                <div className="relative mt-1.5">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                    <Percent className="h-4 w-4" />
+                  </div>
+                  <Input
+                    id="margin"
+                    type="number"
+                    step="1"
+                    min="0"
+                    max="100"
+                    value={formData.margin}
+                    onChange={(e) => setFormData({ ...formData, margin: e.target.value })}
+                    className="pl-10 pr-8"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-lg">%</div>
                 </div>
-                
-                {/* Input Central */}
-                <Input
-                  id="usdRate"
-                  type="number"
-                  step="10"
-                  value={formData.usdRate}
-                  onChange={(e) => setFormData({ ...formData, usdRate: e.target.value })}
-                  placeholder="Ej. 1250"
-                  className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-right font-semibold tabular-nums"
-                />
-                
-                {/* Sufijo Estático: "ARS" */}
-                <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border-l border-input">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    ARS
-                  </span>
-                </div>
+                <p className="text-xs text-muted-foreground mt-1.5">Este porcentaje se aplica sobre el costo del repuesto</p>
               </div>
-              <p className="text-xs text-muted-foreground mt-1.5">
-                Se usará este valor para convertir los costos de repuestos en dólares a pesos
-              </p>
-            </div>
-          </div>
 
-          {/* Botonera */}
+              {/* Tipo de Cambio */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Label htmlFor="usdRate" className="text-sm font-medium">Tipo de Cambio (Dólar)</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleUpdateDolarBlue}
+                    disabled={isDolarBlueLoading}
+                    className="h-7 text-xs gap-1.5 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isDolarBlueLoading ? 'animate-spin' : ''}`} />
+                    {isDolarBlueLoading ? 'Actualizando...' : 'Dolar Blue'}
+                  </Button>
+                </div>
+                <div className="flex items-center rounded-md overflow-hidden border border-input focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 transition-all">
+                  <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-800 border-r border-input">
+                    <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">1 USD =</span>
+                  </div>
+                  <Input
+                    id="usdRate"
+                    type="number"
+                    step="10"
+                    value={formData.usdRate}
+                    onChange={(e) => setFormData({ ...formData, usdRate: e.target.value })}
+                    placeholder="Ej. 1250"
+                    className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-right font-semibold tabular-nums"
+                  />
+                  <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border-l border-input">
+                    <span className="text-sm font-medium text-muted-foreground">ARS</span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Se usa para convertir repuestos en dólares a pesos
+                </p>
+              </div>
+            </div>
+          </AccordionSection>
+
+          {/* -- Sección 2: Multiplicadores de Gama -- */}
+          <AccordionSection
+            icon={<Layers className="h-4 w-4" />}
+            title="Multiplicadores de Gama"
+            badge="Mano de obra"
+            isOpen={openSections.has('tier')}
+            onToggle={() => toggleSection('tier')}
+          >
+            <p className="text-xs text-muted-foreground pb-2">
+              Multiplica el costo de mano de obra según la complejidad y riesgo de desarmar el equipo.
+            </p>
+            <MultiplierField label="Premium"    value={multipliers.tier.premium} onChange={v => setTier('premium', v)} />
+            <MultiplierField label="Gama Alta"  value={multipliers.tier.alta}    onChange={v => setTier('alta', v)} />
+            <MultiplierField label="Gama Media" value={multipliers.tier.media}   onChange={v => setTier('media', v)} />
+            <MultiplierField label="Gama Baja"  value={multipliers.tier.baja}    onChange={v => setTier('baja', v)} />
+          </AccordionSection>
+
+          {/* -- Sección 3: Multiplicadores de Marca -- */}
+          <AccordionSection
+            icon={<Smartphone className="h-4 w-4" />}
+            title="Multiplicadores de Marca"
+            badge="Riesgo"
+            isOpen={openSections.has('brand')}
+            onToggle={() => toggleSection('brand')}
+          >
+            <p className="text-xs text-muted-foreground pb-2">
+              Apple por emparejamiento de series, Samsung por pantallas curvas, el resto por riesgo estándar.
+            </p>
+            <MultiplierField label="Apple"    value={multipliers.brand.apple}    onChange={v => setBrand('apple', v)} />
+            <MultiplierField label="Samsung"  value={multipliers.brand.samsung}  onChange={v => setBrand('samsung', v)} />
+            <MultiplierField label="Motorola" value={multipliers.brand.motorola} onChange={v => setBrand('motorola', v)} />
+            <MultiplierField label="Xiaomi"   value={multipliers.brand.xiaomi}   onChange={v => setBrand('xiaomi', v)} />
+            <MultiplierField label="Otros"    value={multipliers.brand.otros}    onChange={v => setBrand('otros', v)} />
+          </AccordionSection>
+
+          {/* -- Sección 4: Multiplicadores por Repuesto -- */}
+          <AccordionSection
+            icon={<Wrench className="h-4 w-4" />}
+            title="Multiplicadores por Repuesto"
+            badge="Tipo"
+            isOpen={openSections.has('part')}
+            onToggle={() => toggleSection('part')}
+          >
+            <p className="text-xs text-muted-foreground pb-2">
+              Ajusta el costo según el tipo de repuesto intervenido y su riesgo de instalación.
+            </p>
+            <MultiplierField label="Microelectrónica / Placa" value={multipliers.part.microelectronica} onChange={v => setPart('microelectronica', v)} />
+            <MultiplierField label="Pantalla"                 value={multipliers.part.pantalla}         onChange={v => setPart('pantalla', v)} />
+            <MultiplierField label="Pin de Carga"             value={multipliers.part.pin_carga}        onChange={v => setPart('pin_carga', v)} />
+            <MultiplierField label="Batería"                  value={multipliers.part.bateria}          onChange={v => setPart('bateria', v)} />
+          </AccordionSection>
+
+          {/* -- Botonera -- */}
           <div className="space-y-2 pt-2">
-            <Button 
-              onClick={handleSave} 
+            <Button
+              onClick={handleSave}
               className="w-full h-11 text-base font-semibold"
               disabled={isUpdating}
             >
@@ -273,7 +443,7 @@ export function ConfigManager() {
         </CardContent>
       </Card>
 
-      {/* Columna Derecha: Simulador de Impacto */}
+      {/* -- Columna Derecha: Simulador de Impacto -- */}
       <Card className="shadow-lg bg-gradient-to-br from-white to-primary-50/30 dark:from-card dark:to-primary-950/10">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -372,3 +542,4 @@ export function ConfigManager() {
     </div>
   );
 }
+
