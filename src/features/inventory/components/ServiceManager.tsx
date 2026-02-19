@@ -21,16 +21,31 @@ import { Spinner } from '@/shared/components/Spinner';
 // ─── Plantilla predeterminada ─────────────────────────────────────────────────
 
 const DEFAULT_SERVICES: Omit<Service, 'id'>[] = [
-  { name: 'Cambio de Pantalla (Módulo)', hours: 1.5, description: 'Reemplazo de display LCD/OLED, limpieza de marco y sellado.' },
-  { name: 'Cambio de Batería', hours: 0.5, description: 'Reemplazo de batería, colocación de cinta adhesiva original y sellado.' },
-  { name: 'Cambio de Pin de Carga (Sub-placa)', hours: 1.0, description: 'Reemplazo completo de la placa inferior de carga y micrófono.' },
-  { name: 'Pin de Carga (Soldadura)', hours: 1.5, description: 'Desoldar puerto dañado y soldar nuevo puerto tipo C / Micro USB bajo microscopio.' },
-  { name: 'Cambio de Tapa Trasera', hours: 2.0, description: 'Remoción de cristal trasero (calor/láser), limpieza y pegado de tapa nueva.' },
-  { name: 'Microelectrónica (Reparación en Placa)', hours: 3.0, description: 'Diagnóstico de consumo, búsqueda de cortos, reballing o reemplazo de IC (Ej: Tristar, PMIC).' },
-  { name: 'Baño Químico (Daño por Agua)', hours: 2.5, description: 'Desensamble total, lavado en batea ultrasónica con alcohol isopropílico y testeo de voltajes.' },
-  { name: 'Cambio de Cámara (Frontal/Trasera)', hours: 1.0, description: 'Reemplazo de módulo de cámara y testeo de enfoque.' },
-  { name: 'Reparación de Software (Flasheo)', hours: 1.0, description: 'Reinstalación de sistema operativo, hard reset o recuperación de brick.' },
-  { name: 'Diagnóstico General', hours: 0.5, description: 'Revisión técnica inicial para determinar la falla del equipo. (A descontar si se repara).' },
+  { name: 'Cambio de pin de carga Micro USB - V8', hours: 1.0, description: 'Reemplazo de puerto de carga clásico (soldadura simple).' },
+  { name: 'Cambio de pin de carga Micro USB - C', hours: 1.5, description: 'Reemplazo de puerto de carga Tipo C (requiere mayor precisión de soldadura).' },
+  { name: 'Cambio de Modulo MO (*1)', hours: 1.5, description: 'Reemplazo de display LCD/OLED completo. Sugerido: Cobrar Repuesto x2 + 10%.' },
+  { name: 'Cambio de microfono', hours: 1.0, description: 'Reemplazo de micrófono inferior o superior en placa o flex.' },
+  { name: 'Cambio de Boton Desarme Simple', hours: 0.5, description: 'Reemplazo de flex de encendido o volumen de fácil acceso.' },
+  { name: 'Flasheo Hard Reset', hours: 1.0, description: 'Reinstalación de sistema operativo o reseteo de fábrica.' },
+  { name: 'FRP (*2)', hours: 1.5, description: 'Desbloqueo de cuenta de Google (Factory Reset Protection).' },
+  { name: 'Cambio de Componentes SMD No IC', hours: 1.5, description: 'Reemplazo de capacitores, diodos o resistencias en placa.' },
+  { name: 'Cambio de IC', hours: 2.5, description: 'Reemplazo de circuitos integrados (Tristar, IF PMIC, etc.).' },
+  { name: 'Reflow de Componentes de placa Main', hours: 1.5, description: 'Resoldado por calor de componentes en la placa madre.' },
+  { name: 'Servicio a Domicilio (1 Hora)', hours: 1.0, description: 'Asistencia técnica presencial en domicilio del cliente.' },
+  { name: 'Servicio a Domicilio Urgente Fuera de Horario Laboral', hours: 1.0, description: 'Asistencia fuera de horario comercial normal.' },
+  { name: 'Cambio de Vidrio No modulo', hours: 2.5, description: 'Remoción de visor roto y laminado de uno nuevo (Glass), conservando el display original.' },
+  { name: 'Cambio de Camara', hours: 1.0, description: 'Reemplazo de módulo de cámara frontal o trasera.' },
+  { name: 'Crear cuenta de Google', hours: 0.5, description: 'Configuración inicial del equipo y creación de cuenta.' },
+  { name: 'Cambio de Bateria', hours: 0.5, description: 'Reemplazo de batería interna y sellado.' },
+  { name: 'Extra Desarme de Riesgo', hours: 0.5, description: 'Adicional aplicable por equipos de alta complejidad de apertura o sellados.' },
+  { name: 'Diagnostico General', hours: 0.5, description: 'Revisión técnica inicial para determinar la falla del equipo.' },
+  { name: 'Mantenimiento Preventivo: Limpieza de Hardware', hours: 1.0, description: 'Limpieza interna de conectores y remoción de polvo.' },
+  { name: 'Reparacion de Placa Main', hours: 3.0, description: 'Diagnóstico y reparación general a nivel componente.' },
+  { name: 'Reemplazo de Cable Flexible Interno', hours: 1.0, description: 'Cambio de flex de interconexión entre placas o pantalla.' },
+  { name: 'Limpieza Virus - Malware', hours: 1.0, description: 'Eliminación de software malicioso y optimización.' },
+  { name: 'Lavado quimico - Equipos Mojados', hours: 2.5, description: 'Desensamble total y lavado en batea ultrasónica con alcohol isopropílico.' },
+  { name: 'Reparación avanzada mediante resoldado de chips integrados (procesador, GPU, PMIC, etc.)', hours: 3.5, description: 'Trabajo de microelectrónica pesada y reballing.' },
+  { name: 'Restablecimiento de Fábrica y Configuración de Dispositivos Móviles', hours: 1.0, description: 'Wipe data completo y configuración inicial para el cliente.' },
 ];
 
 export function ServiceManager() {
@@ -246,7 +261,7 @@ export function ServiceManager() {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     {/* Title */}
-                    <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 leading-tight">
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 leading-tight line-clamp-2" title={service.name}>
                       {service.name}
                     </h3>
 
