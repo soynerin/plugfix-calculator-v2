@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Receipt, AlertTriangle, Printer, MessageCircle } from 'lucide-react';
+import { Receipt, AlertTriangle, Printer, MessageCircle, RefreshCw } from 'lucide-react';
 import { useBrands } from '@/features/inventory/hooks/useBrands';
 import { useModels } from '@/features/inventory/hooks/useModels';
 import { useServices } from '@/features/inventory/hooks/useServices';
@@ -30,7 +30,7 @@ export function CalculatorForm() {
   const { models } = useModels();
   const { services } = useServices();
   const { partTypes } = usePartTypes();
-  const { calculate, config } = usePriceCalculator();
+  const { calculate } = usePriceCalculator();
   const { addHistory, isAdding: isSavingHistory } = useHistory();
   const { toast } = useToast();
 
@@ -60,26 +60,17 @@ export function CalculatorForm() {
   const selectedModel = models.find((m) => m.id === formData.modelId);
   const selectedService = services.find((s) => s.id === formData.serviceId);
   const selectedBrand = brands.find((b) => b.id === formData.brandId);
-  const selectedPartType = partTypes.find((p) => p.id === formData.partTypeId);
-
-  // Validar si todos los campos requeridos están completos
-  const isFormValid = 
-    formData.brandId && 
-    formData.modelId && 
-    formData.serviceId;
-
-  const handleCalculate = () => {
-    if (!selectedModel || !selectedService) {
-      toast({
-        title: "Campos incompletos",
-        description: "Por favor completa todos los campos requeridos",
-        variant: "destructive",
-      });
+  // Recalcular automáticamente cuando cambien los campos relevantes
+  useEffect(() => {
+    if (!formData.modelId || !formData.serviceId) {
+      setResult(null);
       return;
     }
 
-    // Detectar si el servicio es un cambio de módulo/pantalla (activa regla CATEA si está habilitada)
-    const isModuleService = /pantalla|módulo|modulo|screen/i.test(selectedService.name);
+    const service = services.find((s) => s.id === formData.serviceId);
+    if (!service) return;
+
+    const isModuleService = /pantalla|módulo|modulo|screen/i.test(service.name);
 
     const breakdown = calculate({
       partCost: parseFloat(formData.partCost) || 0,
@@ -87,10 +78,8 @@ export function CalculatorForm() {
       isModuleService,
     });
 
-    if (breakdown) {
-      setResult(breakdown);
-    }
-  };
+    setResult(breakdown);
+  }, [formData.modelId, formData.serviceId, formData.partCost, formData.currency, services, calculate]);
 
   const handleSaveToHistory = () => {
     if (!result || !selectedModel || !selectedService || !selectedBrand) {
@@ -173,11 +162,22 @@ export function CalculatorForm() {
     <div className="grid gap-6 lg:grid-cols-2">
       {/* Form */}
       <Card className="bg-white dark:bg-card shadow-lg">
-        <CardHeader>
-          <CardTitle>Calculadora de Precios</CardTitle>
-          <CardDescription>Calcula el precio de una reparación</CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between pb-4">
+          <div>
+            <CardTitle>Calculadora de Precios</CardTitle>
+            <CardDescription>Calcula el precio de una reparación</CardDescription>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleReset}
+            className="rounded-full text-muted-foreground hover:text-destructive -mt-1 -mr-2 shrink-0"
+            title="Limpiar formulario"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         </CardHeader>
-        <CardContent className="space-y-5">
+        <CardContent className="space-y-4">
           <div>
             <Label>Cliente (opcional)</Label>
             <Input
@@ -188,92 +188,94 @@ export function CalculatorForm() {
             />
           </div>
 
-          <div>
-            <Label>Marca *</Label>
-            <Select
-              value={formData.brandId}
-              onValueChange={(value) =>
-                setFormData({ ...formData, brandId: value, modelId: '' })
-              }
-            >
-              <SelectTrigger className="min-h-[44px]">
-                <SelectValue placeholder="Selecciona una marca" />
-              </SelectTrigger>
-              <SelectContent>
-                {brands.map((brand) => (
-                  <SelectItem key={brand.id} value={brand.id}>
-                    {brand.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Marca *</Label>
+              <Select
+                value={formData.brandId}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, brandId: value, modelId: '' })
+                }
+              >
+                <SelectTrigger className="min-h-[44px]">
+                  <SelectValue placeholder="Selecciona marca" />
+                </SelectTrigger>
+                <SelectContent>
+                  {brands.map((brand) => (
+                    <SelectItem key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Modelo *</Label>
+              <Select
+                value={formData.modelId}
+                onValueChange={(value) => setFormData({ ...formData, modelId: value })}
+                disabled={!formData.brandId}
+              >
+                <SelectTrigger className="min-h-[44px]">
+                  <SelectValue placeholder="Selecciona modelo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredModels.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedModel && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cat: {selectedModel.category}
+                </p>
+              )}
+            </div>
           </div>
 
-          <div>
-            <Label>Modelo *</Label>
-            <Select
-              value={formData.modelId}
-              onValueChange={(value) => setFormData({ ...formData, modelId: value })}
-              disabled={!formData.brandId}
-            >
-              <SelectTrigger className="min-h-[44px]">
-                <SelectValue placeholder="Selecciona un modelo" />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredModels.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    {model.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedModel && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Categoría: {selectedModel.category}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <Label>Servicio *</Label>
-            <Select
-              value={formData.serviceId}
-              onValueChange={(value) => setFormData({ ...formData, serviceId: value })}
-            >
-              <SelectTrigger className="min-h-[44px]">
-                <SelectValue placeholder="Selecciona un servicio" />
-              </SelectTrigger>
-              <SelectContent>
-                {services.map((service) => (
-                  <SelectItem key={service.id} value={service.id}>
-                    {service.name} ({service.hours}h)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>
-              Tipo de Repuesto{' '}
-              <span className="text-muted-foreground font-normal">(Opcional)</span>
-            </Label>
-            <Select
-              value={formData.partTypeId}
-              onValueChange={(value) => setFormData({ ...formData, partTypeId: value })}
-              disabled={partTypes.length === 0}
-            >
-              <SelectTrigger className="min-h-[44px]">
-                <SelectValue placeholder={partTypes.length === 0 ? 'Sin tipos configurados' : 'Selecciona un tipo de repuesto'} />
-              </SelectTrigger>
-              <SelectContent>
-                {partTypes.map((pt) => (
-                  <SelectItem key={pt.id} value={pt.id}>
-                    {pt.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Servicio *</Label>
+              <Select
+                value={formData.serviceId}
+                onValueChange={(value) => setFormData({ ...formData, serviceId: value })}
+              >
+                <SelectTrigger className="min-h-[44px]">
+                  <SelectValue placeholder="Selecciona servicio" />
+                </SelectTrigger>
+                <SelectContent>
+                  {services.map((service) => (
+                    <SelectItem key={service.id} value={service.id}>
+                      {service.name} ({service.hours}h)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>
+                Tipo de Repuesto{' '}
+                <span className="text-muted-foreground font-normal text-xs">(Opcional)</span>
+              </Label>
+              <Select
+                value={formData.partTypeId}
+                onValueChange={(value) => setFormData({ ...formData, partTypeId: value })}
+                disabled={partTypes.length === 0}
+              >
+                <SelectTrigger className="min-h-[44px]">
+                  <SelectValue placeholder={partTypes.length === 0 ? 'Sin tipos' : 'Tipo de repuesto'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {partTypes.map((pt) => (
+                    <SelectItem key={pt.id} value={pt.id}>
+                      {pt.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Diagnóstico opcional */}
@@ -336,25 +338,6 @@ export function CalculatorForm() {
               )}
             </AnimatePresence>
           </div>
-
-          <div className="flex gap-2 pt-2">
-            <Button 
-              onClick={handleCalculate} 
-              className="flex-1 min-h-[44px] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:scale-100"
-              disabled={!isFormValid}
-              size="lg"
-            >
-              Calcular
-            </Button>
-            <Button 
-              onClick={handleReset} 
-              variant="outline" 
-              className="min-h-[44px] transition-all hover:scale-[1.02] active:scale-[0.98]"
-              size="lg"
-            >
-              Limpiar
-            </Button>
-          </div>
         </CardContent>
       </Card>
 
@@ -380,7 +363,7 @@ export function CalculatorForm() {
                   Sin cotización
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Completa el formulario y presiona "Calcular"
+                  Completa los campos para ver la cotización en tiempo real
                 </p>
               </motion.div>
             </motion.div>
