@@ -4,6 +4,13 @@ import { useDolarBlue } from '@/features/inventory/hooks/useDolarBlue';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import {
   DollarSign, TrendingUp, Percent, Sparkles, RefreshCw,
@@ -136,6 +143,13 @@ export function ConfigManager() {
     part:  { ...DEFAULT_CONFIG.partMultipliers },
   });
 
+  const [simState, setSimState] = useState({
+    partCostUSD: 100,
+    tier:  'media'  as keyof TierMultipliers,
+    brand: 'otros'  as keyof BrandMultipliers,
+    part:  'pantalla' as keyof PartMultipliers,
+  });
+
   // Economics section open by default; multiplier sections closed
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['economics']));
   const toggleSection = (id: string) =>
@@ -229,30 +243,37 @@ export function ConfigManager() {
   const setPart  = (key: keyof PartMultipliers,  val: number) =>
     setMultipliers(p => ({ ...p, part:  { ...p.part,  [key]: val } }));
 
-  // Simulación en tiempo real - Caso ejemplo: Repuesto de $100 USD
+  // Simulación en tiempo real — usa los valores del formulario y los controles del simulador
   const simulation = useMemo(() => {
-    const partCostUSD = 100;
-    const hourlyRate = parseFloat(formData.hourlyRate) || 0;
-    const margin = parseFloat(formData.margin) || 0;
-    const usdRate = parseFloat(formData.usdRate) || 1;
-    const laborHours = 1;
-    const riskFactor = 1.5;
+    const partCostUSD  = simState.partCostUSD || 0;
+    const hourlyRate   = parseFloat(formData.hourlyRate) || 0;
+    const margin       = parseFloat(formData.margin) || 0;
+    const usdRate      = parseFloat(formData.usdRate) || 1;
 
-    const partCostARS = partCostUSD * usdRate;
+    const tierMult  = multipliers.tier[simState.tier];
+    const brandMult = multipliers.brand[simState.brand];
+    const partMult  = multipliers.part[simState.part];
+    const combinedRisk = Math.round(tierMult * brandMult * partMult * 100) / 100;
+
+    const partCostARS        = partCostUSD * usdRate;
     const partCostWithMargin = partCostARS * (1 + margin / 100);
-    const marginAmount = partCostWithMargin - partCostARS;
-    const laborCostARS = hourlyRate * laborHours * riskFactor;
-    const subtotal = partCostWithMargin + laborCostARS;
-    const finalPrice = Math.ceil(subtotal / 100) * 100;
+    const marginAmount       = partCostWithMargin - partCostARS;
+    const laborCostARS       = hourlyRate * 1 * combinedRisk;
+    const subtotal           = partCostWithMargin + laborCostARS;
+    const finalPrice         = Math.ceil(subtotal / 100) * 100;
 
     return {
       partCostUSD,
-      partCostARS: Math.round(partCostARS),
-      marginAmount: Math.round(marginAmount),
-      laborCostARS: Math.round(laborCostARS),
+      partCostARS:   Math.round(partCostARS),
+      marginAmount:  Math.round(marginAmount),
+      laborCostARS:  Math.round(laborCostARS),
       finalPrice,
+      tierMult,
+      brandMult,
+      partMult,
+      combinedRisk,
     };
-  }, [formData.hourlyRate, formData.margin, formData.usdRate]);
+  }, [formData.hourlyRate, formData.margin, formData.usdRate, simState, multipliers]);
 
   if (isLoading) {
     return (
@@ -451,19 +472,117 @@ export function ConfigManager() {
             Simulador de Impacto
           </CardTitle>
           <CardDescription>
-            Ejemplo de cálculo con repuesto de ${simulation.partCostUSD} USD
+            Probá en vivo cómo tus multiplicadores afectan el precio antes de guardar
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-5">
+
+          {/* -- Controles del simulador -- */}
+          <div className="grid grid-cols-2 gap-3 p-4 bg-muted/40 rounded-lg border border-input">
+
+            {/* Costo Repuesto Base */}
+            <div className="col-span-2">
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Costo Repuesto Base</Label>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs pointer-events-none">$</div>
+                <Input
+                  type="number"
+                  step="10"
+                  min="1"
+                  value={simState.partCostUSD}
+                  onChange={(e) =>
+                    setSimState(p => ({ ...p, partCostUSD: parseFloat(e.target.value) || 0 }))
+                  }
+                  className="pl-6 pr-16 h-9 text-sm"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none font-medium">USD</div>
+              </div>
+            </div>
+
+            {/* Gama */}
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">
+                Gama{' '}
+                <span className="font-semibold text-primary-600 dark:text-primary-400">
+                  {simulation.tierMult}×
+                </span>
+              </Label>
+              <Select
+                value={simState.tier}
+                onValueChange={(v) => setSimState(p => ({ ...p, tier: v as keyof TierMultipliers }))}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="premium">Premium</SelectItem>
+                  <SelectItem value="alta">Gama Alta</SelectItem>
+                  <SelectItem value="media">Gama Media</SelectItem>
+                  <SelectItem value="baja">Gama Baja</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Marca */}
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">
+                Marca{' '}
+                <span className="font-semibold text-primary-600 dark:text-primary-400">
+                  {simulation.brandMult}×
+                </span>
+              </Label>
+              <Select
+                value={simState.brand}
+                onValueChange={(v) => setSimState(p => ({ ...p, brand: v as keyof BrandMultipliers }))}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="apple">Apple</SelectItem>
+                  <SelectItem value="samsung">Samsung</SelectItem>
+                  <SelectItem value="motorola">Motorola</SelectItem>
+                  <SelectItem value="xiaomi">Xiaomi</SelectItem>
+                  <SelectItem value="otros">Otros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Tipo de Repuesto */}
+            <div className="col-span-2">
+              <Label className="text-xs text-muted-foreground mb-1.5 block">
+                Tipo de Repuesto{' '}
+                <span className="font-semibold text-primary-600 dark:text-primary-400">
+                  {simulation.partMult}×
+                </span>
+              </Label>
+              <Select
+                value={simState.part}
+                onValueChange={(v) => setSimState(p => ({ ...p, part: v as keyof PartMultipliers }))}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="microelectronica">Microelectrónica / Placa</SelectItem>
+                  <SelectItem value="pantalla">Pantalla</SelectItem>
+                  <SelectItem value="pin_carga">Pin de Carga</SelectItem>
+                  <SelectItem value="bateria">Batería</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* -- Desglose animado -- */}
           <motion.div
-            key={`${formData.hourlyRate}-${formData.margin}-${formData.usdRate}`}
+            key={`${formData.hourlyRate}-${formData.margin}-${formData.usdRate}-${simState.tier}-${simState.brand}-${simState.part}-${simState.partCostUSD}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="space-y-6"
+            className="space-y-4"
           >
             {/* Ecuación Visual */}
-            <div className="space-y-4 pb-6 border-b-2 border-dashed border-gray-200 dark:border-gray-700">
+            <div className="space-y-3 pb-5 border-b-2 border-dashed border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between py-3 px-4 bg-white dark:bg-card rounded-lg shadow-sm">
                 <span className="text-sm text-muted-foreground">Costo Repuesto</span>
                 <span className="text-lg font-semibold tabular-nums">
@@ -490,7 +609,7 @@ export function ConfigManager() {
 
               <div className="flex items-center justify-between py-3 px-4 bg-white dark:bg-card rounded-lg shadow-sm">
                 <span className="text-sm text-muted-foreground">
-                  Mano de Obra (1h × 1.5x)
+                  Mano de Obra (1h × {simulation.combinedRisk}×)
                 </span>
                 <span className="text-lg font-semibold tabular-nums">
                   <AnimatedNumber value={simulation.laborCostARS} currency="ARS" />
@@ -522,18 +641,23 @@ export function ConfigManager() {
               </p>
             </motion.div>
 
-            {/* Info Adicional */}
-            <div className="pt-4 text-xs text-muted-foreground space-y-1.5 border-t">
+            {/* Info Adicional — desglose de multiplicadores */}
+            <div className="pt-3 text-xs text-muted-foreground space-y-1.5 border-t">
               <p className="flex justify-between">
-                <span>Factor de riesgo ejemplo:</span>
-                <span className="font-medium">1.5x</span>
+                <span>Factor combinado:</span>
+                <span className="font-medium tabular-nums">
+                  {simulation.tierMult} × {simulation.brandMult} × {simulation.partMult} ={' '}
+                  <span className="text-primary-600 dark:text-primary-400 font-semibold">
+                    {simulation.combinedRisk}×
+                  </span>
+                </span>
               </p>
               <p className="flex justify-between">
                 <span>Horas de trabajo:</span>
                 <span className="font-medium">1h</span>
               </p>
               <p className="text-[10px] text-muted-foreground/70 mt-3 italic">
-                * Los valores cambian instantáneamente al modificar la configuración
+                * El precio cambia instantáneamente al editar multiplicadores
               </p>
             </div>
           </motion.div>
