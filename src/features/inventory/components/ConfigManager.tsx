@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useConfig } from '@/features/inventory/hooks/useConfig';
 import { useDolarBlue } from '@/features/inventory/hooks/useDolarBlue';
+import { useServices } from '@/features/inventory/hooks/useServices';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -130,6 +131,7 @@ export function ConfigManager() {
   const { config, updateConfigAsync, isLoading, isUpdating } = useConfig();
   const { toast } = useToast();
   const { isLoading: isDolarBlueLoading, refetch: refetchDolarBlue } = useDolarBlue();
+  const { services } = useServices();
 
   const [formData, setFormData] = useState({
     hourlyRate: '13000',
@@ -149,6 +151,14 @@ export function ConfigManager() {
     brand: 'otros'  as keyof BrandMultipliers,
     part:  'pantalla' as keyof PartMultipliers,
   });
+  const [selectedServiceId, setSelectedServiceId] = useState('');
+
+  // Set default service when list first loads
+  useEffect(() => {
+    if (services.length > 0 && !selectedServiceId) {
+      setSelectedServiceId(services[0]!.id);
+    }
+  }, [services, selectedServiceId]);
 
   // Advanced mode toggle (hidden multiplier sections by default)
   const [advancedMode, setAdvancedMode] = useState(false);
@@ -248,6 +258,9 @@ export function ConfigManager() {
 
   // Simulación en tiempo real — usa los valores del formulario y los controles del simulador
   const simulation = useMemo(() => {
+    const selectedService = services.find(s => s.id === selectedServiceId) ?? services[0];
+    const baseHours = selectedService?.hours ?? 1;
+
     const partCostUSD  = simState.partCostUSD || 0;
     const hourlyRate   = parseFloat(formData.hourlyRate) || 0;
     const margin       = parseFloat(formData.margin) || 0;
@@ -263,11 +276,12 @@ export function ConfigManager() {
     const partCostARS        = partCostUSD * usdRate;
     const partCostWithMargin = partCostARS * (1 + margin / 100);
     const marginAmount       = partCostWithMargin - partCostARS;
-    const laborCostARS       = hourlyRate * 1 * combinedRisk;
+    const laborCostARS       = hourlyRate * baseHours * combinedRisk;
     const subtotal           = partCostWithMargin + laborCostARS;
     const finalPrice         = Math.ceil(subtotal / 100) * 100;
 
     return {
+      baseHours,
       partCostUSD,
       partCostARS:   Math.round(partCostARS),
       marginAmount:  Math.round(marginAmount),
@@ -278,7 +292,7 @@ export function ConfigManager() {
       partMult,
       combinedRisk,
     };
-  }, [formData.hourlyRate, formData.margin, formData.usdRate, simState, multipliers, advancedMode]);
+  }, [formData.hourlyRate, formData.margin, formData.usdRate, simState, multipliers, advancedMode, services, selectedServiceId]);
 
   if (isLoading) {
     return (
@@ -533,6 +547,27 @@ export function ConfigManager() {
           {/* -- Controles del simulador -- */}
           <div className="grid grid-cols-2 gap-3 p-4 bg-muted/40 rounded-lg border border-input">
 
+            {/* Servicio a simular */}
+            <div className="col-span-2">
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Servicio a simular</Label>
+              <Select
+                value={selectedServiceId}
+                onValueChange={setSelectedServiceId}
+                disabled={services.length === 0}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder={services.length === 0 ? 'Sin servicios configurados' : 'Selecciona un servicio'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {services.map((service) => (
+                    <SelectItem key={service.id} value={service.id}>
+                      {service.name} — {service.hours} hrs
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Costo Repuesto Base */}
             <div className="col-span-2">
               <Label className="text-xs text-muted-foreground mb-1.5 block">Costo Repuesto Base</Label>
@@ -541,7 +576,7 @@ export function ConfigManager() {
                 <Input
                   type="number"
                   step="10"
-                  min="1"
+                  min="0"
                   value={simState.partCostUSD}
                   onChange={(e) =>
                     setSimState(p => ({ ...p, partCostUSD: parseFloat(e.target.value) || 0 }))
@@ -644,7 +679,7 @@ export function ConfigManager() {
 
           {/* -- Desglose animado -- */}
           <motion.div
-            key={`${formData.hourlyRate}-${formData.margin}-${formData.usdRate}-${simState.tier}-${simState.brand}-${simState.part}-${simState.partCostUSD}`}
+            key={`${formData.hourlyRate}-${formData.margin}-${formData.usdRate}-${simState.tier}-${simState.brand}-${simState.part}-${simState.partCostUSD}-${selectedServiceId}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -679,8 +714,8 @@ export function ConfigManager() {
               <div className="flex items-center justify-between py-3 px-4 bg-white dark:bg-card rounded-lg shadow-sm">
                 <span className="text-sm text-muted-foreground">
                   {advancedMode
-                    ? `Mano de Obra (1h × ${simulation.combinedRisk}×)`
-                    : 'Mano de Obra (1h base)'}
+                    ? `Mano de Obra (${simulation.baseHours}h base × ${simulation.combinedRisk}x riesgo)`
+                    : `Mano de Obra (${simulation.baseHours}h base)`}
                 </span>
                 <span className="text-lg font-semibold tabular-nums">
                   <AnimatedNumber value={simulation.laborCostARS} currency="ARS" />
@@ -732,7 +767,7 @@ export function ConfigManager() {
               )}
               <p className="flex justify-between">
                 <span>Horas de trabajo:</span>
-                <span className="font-medium">1h</span>
+                <span className="font-medium">{simulation.baseHours}h</span>
               </p>
               <p className="text-[10px] text-muted-foreground/70 mt-3 italic">
                 * El precio cambia instantáneamente al editar valores
