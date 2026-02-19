@@ -16,7 +16,6 @@ import { motion } from 'framer-motion';
 import { ProfilePage } from '@/features/profile';
 import { UserMenu } from '@/shared/components/UserMenu';
 import { db } from '@/core/services';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { CalculatorForm } from '@/features/calculator/components/CalculatorForm';
 import { BrandManager } from '@/features/inventory/components/BrandManager';
@@ -45,6 +44,12 @@ const queryClient = new QueryClient({
 function MainLayout() {
   const [activeTab, setActiveTab] = useState('calculator');
   const { user, role } = useAuth();
+
+  useEffect(() => {
+    db.initialize().catch((err) => {
+      console.error('❌ Error inicializando base de datos:', err);
+    });
+  }, []);
   const isAdmin = role === 'admin';
 
   const displayName =
@@ -226,48 +231,6 @@ function MainLayout() {
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 function App() {
-  const [dbInitialized, setDbInitialized] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Inicializar base de datos
-    db.initialize()
-      .then(() => {
-        console.log('✅ Base de datos inicializada');
-        setDbInitialized(true);
-      })
-      .catch((err) => {
-        console.error('❌ Error inicializando base de datos:', err);
-        setError(err.message);
-      });
-  }, []);
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-destructive">Error</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>{error}</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!dbInitialized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="animate-pulse text-4xl">⚙️</div>
-          <p className="text-muted-foreground">Inicializando base de datos...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
