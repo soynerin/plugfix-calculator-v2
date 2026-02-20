@@ -619,7 +619,7 @@ export function HistoryViewer() {
 
       {/* Detail Modal */}
       <Dialog open={!!selectedEntry} onOpenChange={(open) => !open && handleCloseModal()}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
+        <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
           <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
             <DialogTitle>Desglose de Reparación</DialogTitle>
             <DialogDescription>
@@ -788,7 +788,7 @@ export function HistoryViewer() {
               </div>
 
               {/* Modal Footer */}
-              <div className="px-6 py-4 border-t bg-muted/30 shrink-0 flex items-center justify-between gap-2">
+              <div className="px-4 sm:px-6 py-4 border-t bg-muted/30 shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 {isEditing ? (
                   <>
                     <div />
@@ -815,11 +815,11 @@ export function HistoryViewer() {
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 w-full sm:w-auto">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="gap-1.5"
+                        className="gap-1.5 h-11 sm:h-9 w-full sm:w-auto"
                         onClick={() => window.print()}
                       >
                         <Printer className="h-4 w-4" />
@@ -828,18 +828,18 @@ export function HistoryViewer() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="gap-1.5"
+                        className="gap-1.5 h-11 sm:h-9 w-full sm:w-auto"
                         onClick={() => handleWhatsAppShareEntry(selectedEntry)}
                       >
                         <MessageCircle className="h-4 w-4" />
                         WhatsApp
                       </Button>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="gap-1.5"
+                        className="gap-1.5 h-11 sm:h-9 w-full sm:w-auto"
                         onClick={() => {
                           setEditForm({
                             clientName: selectedEntry.clientName || '',
@@ -853,7 +853,7 @@ export function HistoryViewer() {
                         <Pencil className="h-4 w-4" />
                         Editar Datos
                       </Button>
-                      <Button size="sm" onClick={handleCloseModal}>
+                      <Button size="sm" className="h-11 sm:h-9 w-full sm:w-auto" onClick={handleCloseModal}>
                         Cerrar
                       </Button>
                     </div>
