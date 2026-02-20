@@ -350,6 +350,7 @@ export class SupabaseAdapter implements IDatabaseService {
         user_id: userId,
         name: service.name,
         hours: service.hours,
+        base_price: service.basePrice ?? 0,
         description: service.description || null
       })
       .select()
@@ -364,6 +365,7 @@ export class SupabaseAdapter implements IDatabaseService {
     const updateData: Record<string, any> = {};
     if (serviceData.name !== undefined) updateData.name = serviceData.name;
     if (serviceData.hours !== undefined) updateData.hours = serviceData.hours;
+    if (serviceData.basePrice !== undefined) updateData.base_price = serviceData.basePrice;
     if (serviceData.description !== undefined) updateData.description = serviceData.description;
 
     const { data, error } = await this.client
@@ -394,6 +396,7 @@ export class SupabaseAdapter implements IDatabaseService {
       user_id: userId,
       name: s.name,
       hours: s.hours,
+      base_price: s.basePrice ?? 0,
       description: s.description || null,
     }));
 
@@ -774,6 +777,7 @@ export class SupabaseAdapter implements IDatabaseService {
         await this.addService({
           name: service.name,
           hours: service.hours,
+          basePrice: service.basePrice ?? 0,
           description: service.description
         });
       }
@@ -864,6 +868,7 @@ export class SupabaseAdapter implements IDatabaseService {
       id: data.id,
       name: data.name,
       hours: data.hours,
+      basePrice: data.base_price ?? 0,
       ...(data.description && { description: data.description }),
       ...(data.created_at && { createdAt: new Date(data.created_at) }),
       ...(data.updated_at && { updatedAt: new Date(data.updated_at) })

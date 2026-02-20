@@ -10,6 +10,8 @@ import type { PriceBreakdown } from '@/core/domain/models';
 export interface SimplifiedCalculationParams {
   partCost: number;
   currency: 'ARS' | 'USD';
+  /** Precio base de M.O. del servicio seleccionado (columna "Particular" CATEA). */
+  serviceBasePrice?: number;
   /** true cuando el servicio seleccionado es un cambio de módulo/pantalla */
   isModuleService?: boolean;
   /** true cuando el servicio es FRP / Cuenta Google */
@@ -31,6 +33,7 @@ export function usePriceCalculator() {
         usdRate: config.usdRate,
         defaultMargin: config.defaultMargin,
         minimumLaborCost: config.minimumLaborCost,
+        serviceBasePrice: params.serviceBasePrice ?? 0,
         applyCateaModuleRule: config.applyCateaModuleRule,
         isModuleService: params.isModuleService ?? false,
         isFrpService: params.isFrpService ?? false,
@@ -58,6 +61,7 @@ export function usePriceCalculator() {
         usdRate: config.usdRate,
         defaultMargin: config.defaultMargin,
         minimumLaborCost: config.minimumLaborCost,
+        serviceBasePrice: params.serviceBasePrice ?? 0,
         applyCateaModuleRule: config.applyCateaModuleRule,
         isModuleService: params.isModuleService ?? false,
         isFrpService: params.isFrpService ?? false,

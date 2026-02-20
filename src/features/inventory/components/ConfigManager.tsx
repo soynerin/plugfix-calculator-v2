@@ -181,12 +181,14 @@ export function ConfigManager() {
       usdRate,
       defaultMargin,
       minimumLaborCost,
+      serviceBasePrice: simService?.basePrice ?? 0,
       applyCateaModuleRule,
-      isModuleService: simIsModule,
+      // Sólo activar la fórmula de módulo si el toggle CATEA está habilitado
+      isModuleService: applyCateaModuleRule && simIsModule,
     });
 
     return { ...result, useCatea };
-  }, [formData, laborCostCurrency, simPartCost, simCurrency, simIsModule]);
+  }, [formData, laborCostCurrency, simPartCost, simCurrency, simIsModule, simService]);
 
   if (isLoading) {
     return (
@@ -475,13 +477,13 @@ export function ConfigManager() {
           {/* Badge de fórmula activa */}
           <AnimatePresence mode="wait">
             <motion.div
-              key={simulation.useCatea ? 'catea' : 'standard'}
+              key={simulation.usedCateaRule ? 'catea' : 'standard'}
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 6 }}
               transition={{ duration: 0.2 }}
             >
-              {simulation.useCatea ? (
+              {simulation.usedCateaRule ? (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700">
                   <ShieldCheck className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
                   <div>
@@ -524,8 +526,7 @@ export function ConfigManager() {
                 </span>
               </div>
 
-              {simulation.useCatea ? (
-                /* Desglose CATEA */
+              {simulation.usedCateaRule ? (
                 <>
                   <div className="flex items-center justify-between py-2 px-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg shadow-sm text-sm border border-amber-200/60 dark:border-amber-800/40">
                     <span className="text-muted-foreground">Labor CATEA (× 2)</span>
@@ -550,7 +551,9 @@ export function ConfigManager() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-2 px-3 bg-white dark:bg-card rounded-lg shadow-sm text-sm">
-                    <span className="text-muted-foreground">Mano de obra mínima</span>
+                    <span className="text-muted-foreground">
+                      {(simService?.basePrice ?? 0) > 0 ? 'Mano de obra (CATEA)' : 'Mano de obra mínima'}
+                    </span>
                     <span className="font-semibold tabular-nums">
                       <AnimatedNumber value={simulation.laborCostARS} currency="ARS" />
                     </span>

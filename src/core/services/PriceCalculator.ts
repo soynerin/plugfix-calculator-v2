@@ -8,7 +8,9 @@ export interface CalculationParams {
   currency: 'ARS' | 'USD';        // Moneda del costo del repuesto
   usdRate: number;                 // Cotización USD → ARS
   defaultMargin: number;           // Margen general sobre repuestos (%)
-  minimumLaborCost: number;        // Costo mínimo de mano de obra (ARS)
+  minimumLaborCost: number;        // Costo mínimo de mano de obra global (ARS) — fallback
+  /** Precio base de M.O. propio del servicio (columna "Particular" CATEA). 0 usa el fallback. */
+  serviceBasePrice: number;
   applyCateaModuleRule: boolean;   // ¿Activar regla CATEA?
   isModuleService: boolean;        // ¿El servicio es cambio de módulo/pantalla?
   isFrpService?: boolean;          // ¿El servicio es FRP / Cuenta Google?
@@ -19,32 +21,34 @@ export interface CalculationParams {
  * PriceCalculator — Lógica pura de cálculo de precios (modelo CATEA v2.0)
  *
  * Fórmula estándar:
- *   PrecioFinal = ceil((RepuestoARS × (1 + margen%) + ManoDeObraMínima) / 1000) × 1000
+ *   PrecioFinal = ceil((RepuestoARS × (1 + margen%) + servicioBasePrice) / 1000) × 1000
  *
  * Fórmula CATEA (pantallas/módulos con regla activada):
- *   PrecioFinal = ceil((RepuestoARS × 2 × 1.10) / 1000) × 1000
+ *   profit = (RepuestoARS × 2 × 1.10) − RepuestoARS
+ *   Si profit > servicioBasePrice → usa precio CATEA
+ *   Si profit <= servicioBasePrice → usa servicioBasePrice como M.O.
  */
 export class PriceCalculator {
   static calculate(params: CalculationParams): PriceBreakdown {
     const {
       partCost, currency, usdRate,
-      defaultMargin, minimumLaborCost,
+      defaultMargin, minimumLaborCost, serviceBasePrice,
       isModuleService,
     } = params;
+
+    // Precio base efectivo: el del servicio si está definido, sino fallback al global
+    const effectiveBasePrice = serviceBasePrice > 0 ? serviceBasePrice : minimumLaborCost;
 
     // Normalizar costo del repuesto a ARS
     const rawPartARS = currency === 'USD' ? partCost * usdRate : partCost;
 
     if (isModuleService) {
-      // --- Fórmula CATEA: (RepuestoARS × 2) × 1.10 ---
-      // Se aplica siempre que el servicio sea de módulo/pantalla (detección por nombre).
-      // El flag applyCateaModuleRule es informativo/display; no bloquea el cálculo.
+      // --- Fórmula CATEA: profit = (RepuestoARS × 2 × 1.10) − RepuestoARS ---
       const cateaSuggestedPrice = rawPartARS * 2 * 1.10;
-      // Ganancia = precio sugerido CATEA − costo del repuesto
       const gainResultante = cateaSuggestedPrice - rawPartARS; // rawPartARS × 1.20
 
-      if (gainResultante >= minimumLaborCost) {
-        // La ganancia supera la mano de obra mínima → aplicar Regla CATEA
+      if (gainResultante > effectiveBasePrice) {
+        // La ganancia CATEA supera la M.O. base → aplicar Regla CATEA
         const finalPriceARS = Math.ceil(cateaSuggestedPrice / 1000) * 1000;
         return {
           partCostARS:    Math.round(rawPartARS),
@@ -58,12 +62,12 @@ export class PriceCalculator {
         };
       }
 
-      // Fallback: la ganancia CATEA es insuficiente → cobrar mano de obra mínima
-      const subtotalFallbackARS = rawPartARS + minimumLaborCost;
+      // Fallback: la ganancia CATEA es insuficiente → cobrar M.O. base del servicio
+      const subtotalFallbackARS = rawPartARS + effectiveBasePrice;
       const finalPriceFallbackARS = Math.ceil(subtotalFallbackARS / 1000) * 1000;
       return {
         partCostARS:    Math.round(rawPartARS),
-        laborCostARS:   Math.round(minimumLaborCost),
+        laborCostARS:   Math.round(effectiveBasePrice),
         riskPremiumARS: 0,
         subtotalARS:    Math.round(subtotalFallbackARS),
         marginARS:      0,
@@ -76,7 +80,7 @@ export class PriceCalculator {
     // --- Fórmula FRP (Desbloqueo de Cuenta Google / Factory Reset Protection) ---
     if (params.isFrpService) {
       const multiplier = params.frpSecurityMultiplier ?? 1;
-      const frpTotal = minimumLaborCost * multiplier;
+      const frpTotal = effectiveBasePrice * multiplier;
       const finalPriceARS = Math.ceil(frpTotal / 1000) * 1000;
       return {
         partCostARS:    0,
@@ -94,7 +98,7 @@ export class PriceCalculator {
     // --- Fórmula estándar ---
     const marginARS          = rawPartARS * (defaultMargin / 100);
     const partWithMarginARS  = rawPartARS + marginARS;
-    const laborCostARS       = minimumLaborCost;
+    const laborCostARS       = effectiveBasePrice;
     const subtotalARS        = partWithMarginARS + laborCostARS;
     const finalPriceARS      = Math.ceil(subtotalARS / 1000) * 1000;
 
@@ -144,6 +148,7 @@ export class PriceCalculator {
     if (params.defaultMargin < 0 || params.defaultMargin > 500)
                                       errors.push('El margen debe estar entre 0% y 500%');
     if (params.minimumLaborCost < 0)  errors.push('La mano de obra mínima no puede ser negativa');
+    if (params.serviceBasePrice < 0)  errors.push('El precio base del servicio no puede ser negativo');
     return { valid: errors.length === 0, errors };
   }
 }

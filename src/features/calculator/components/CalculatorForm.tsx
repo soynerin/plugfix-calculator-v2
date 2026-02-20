@@ -80,6 +80,7 @@ export function CalculatorForm() {
     const breakdown = calculate({
       partCost: isFrp ? 0 : (parseFloat(formData.partCost) || 0),
       currency: formData.currency,
+      serviceBasePrice: service.basePrice ?? 0,
       isModuleService,
       isFrpService: isFrp,
       frpSecurityMultiplier,

@@ -47,6 +47,7 @@ CREATE TABLE services (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR(255) NOT NULL UNIQUE,
   hours DECIMAL(4,2) NOT NULL CHECK (hours > 0),
+  base_price NUMERIC NOT NULL DEFAULT 0,
   description TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -235,11 +236,30 @@ INSERT INTO brands (id, name) VALUES
   ('550e8400-e29b-41d4-a716-446655440001', 'Apple')
 ON CONFLICT (name) DO NOTHING;
 
--- Insert default services
-INSERT INTO services (id, name, hours) VALUES
-  ('660e8400-e29b-41d4-a716-446655440000', 'Cambio de Pantalla', 1.0),
-  ('660e8400-e29b-41d4-a716-446655440001', 'Cambio de Batería', 0.5),
-  ('660e8400-e29b-41d4-a716-446655440002', 'Conector de Carga', 0.75)
+-- Insert default services (CATEA "Particular" base prices)
+INSERT INTO services (name, hours, base_price, description) VALUES
+  ('Cambio de pin de carga Micro USB - V8', 1.0,  24500, 'Reemplazo de puerto clásico.'),
+  ('Cambio de pin de carga Micro USB - C',  1.5,  31500, 'Reemplazo de puerto Tipo C.'),
+  ('Cambio de Modulo MO (*1)',              1.5,  24500, 'Reemplazo de display LCD/OLED.'),
+  ('Cambio de microfono',                  1.0,  24500, 'Reemplazo de micrófono.'),
+  ('Cambio de Boton Desarme Simple',        0.5,  14000, 'Reemplazo de flex simple.'),
+  ('Flasheo Hard Reset',                   1.0,  10500, 'Reinstalación de OS.'),
+  ('FRP (*2)',                             1.5,  17500, 'Desbloqueo de cuenta.'),
+  ('Cambio de Componentes SMD No IC',      1.5,  17500, 'Reemplazo de capacitores, diodos, etc.'),
+  ('Cambio de IC',                         2.5,  38500, 'Reemplazo de circuitos integrados.'),
+  ('Reflow de Componentes de placa Main',  1.5,  17500, 'Resoldado por calor.'),
+  ('Cambio de Vidrio No modulo',           2.5,  26600, 'Remoción de visor roto y laminado.'),
+  ('Cambio de Camara',                     1.0,  17500, 'Reemplazo de módulo de cámara.'),
+  ('Crear cuenta de Google',               0.5,  10500, 'Configuración inicial.'),
+  ('Cambio de Bateria',                    0.5,  17500, 'Reemplazo de batería.'),
+  ('Diagnostico General',                  0.5,  14000, 'Revisión técnica inicial.'),
+  ('Mantenimiento Preventivo: Limpieza',   1.0,  14000, 'Limpieza de hardware.'),
+  ('Reparacion de Placa Main',             3.0,  84000, 'Reparación a nivel componente.'),
+  ('Reemplazo de Cable Flexible Interno',  1.0,  24500, 'Cambio de flex.'),
+  ('Limpieza Virus - Malware',             1.0,  17500, 'Eliminación de software malicioso.'),
+  ('Lavado quimico - Equipos Mojados',     2.5,  14000, 'Lavado ultrasónico.'),
+  ('Reparación avanzada mediante resoldado...', 3.5, 54486, 'Microelectrónica pesada y reballing.'),
+  ('Restablecimiento de Fábrica y Configuración', 1.0, 27243, 'Wipe data y configuración.')
 ON CONFLICT (name) DO NOTHING;
 
 -- ============================================

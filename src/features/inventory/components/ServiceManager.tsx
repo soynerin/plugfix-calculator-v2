@@ -21,31 +21,28 @@ import { Spinner } from '@/shared/components/Spinner';
 // ─── Plantilla predeterminada ─────────────────────────────────────────────────
 
 const DEFAULT_SERVICES: Omit<Service, 'id'>[] = [
-  { name: 'Cambio de pin de carga Micro USB - V8', hours: 1.0, description: 'Reemplazo de puerto de carga clásico (soldadura simple).' },
-  { name: 'Cambio de pin de carga Micro USB - C', hours: 1.5, description: 'Reemplazo de puerto de carga Tipo C (requiere mayor precisión de soldadura).' },
-  { name: 'Cambio de Modulo', hours: 1.5, description: 'Reemplazo de display LCD/OLED completo. Sugerido: Cobrar Repuesto x2 + 10%.' },
-  { name: 'Cambio de microfono', hours: 1.0, description: 'Reemplazo de micrófono inferior o superior en placa o flex.' },
-  { name: 'Cambio de Boton Desarme Simple', hours: 0.5, description: 'Reemplazo de flex de encendido o volumen de fácil acceso.' },
-  { name: 'Flasheo Hard Reset', hours: 1.0, description: 'Reinstalación de sistema operativo o reseteo de fábrica.' },
-  { name: 'FRP', hours: 1.5, description: 'Desbloqueo de cuenta de Google (Factory Reset Protection).' },
-  { name: 'Cambio de Componentes SMD No IC', hours: 1.5, description: 'Reemplazo de capacitores, diodos o resistencias en placa.' },
-  { name: 'Cambio de IC', hours: 2.5, description: 'Reemplazo de circuitos integrados (Tristar, IF PMIC, etc.).' },
-  { name: 'Reflow de Componentes de placa Main', hours: 1.5, description: 'Resoldado por calor de componentes en la placa madre.' },
-  { name: 'Servicio a Domicilio (1 Hora)', hours: 1.0, description: 'Asistencia técnica presencial en domicilio del cliente.' },
-  { name: 'Servicio a Domicilio Urgente Fuera de Horario Laboral', hours: 1.0, description: 'Asistencia fuera de horario comercial normal.' },
-  { name: 'Cambio de Vidrio No modulo', hours: 2.5, description: 'Remoción de visor roto y laminado de uno nuevo (Glass), conservando el display original.' },
-  { name: 'Cambio de Camara', hours: 1.0, description: 'Reemplazo de módulo de cámara frontal o trasera.' },
-  { name: 'Crear cuenta de Google', hours: 0.5, description: 'Configuración inicial del equipo y creación de cuenta.' },
-  { name: 'Cambio de Bateria', hours: 0.5, description: 'Reemplazo de batería interna y sellado.' },
-  { name: 'Extra Desarme de Riesgo', hours: 0.5, description: 'Adicional aplicable por equipos de alta complejidad de apertura o sellados.' },
-  { name: 'Diagnostico General', hours: 0.5, description: 'Revisión técnica inicial para determinar la falla del equipo.' },
-  { name: 'Mantenimiento Preventivo: Limpieza de Hardware', hours: 1.0, description: 'Limpieza interna de conectores y remoción de polvo.' },
-  { name: 'Reparacion de Placa Main', hours: 3.0, description: 'Diagnóstico y reparación general a nivel componente.' },
-  { name: 'Reemplazo de Cable Flexible Interno', hours: 1.0, description: 'Cambio de flex de interconexión entre placas o pantalla.' },
-  { name: 'Limpieza Virus - Malware', hours: 1.0, description: 'Eliminación de software malicioso y optimización.' },
-  { name: 'Lavado quimico - Equipos Mojados', hours: 2.5, description: 'Desensamble total y lavado en batea ultrasónica con alcohol isopropílico.' },
-  { name: 'Reparación avanzada mediante resoldado de chips integrados (procesador, GPU, PMIC, etc.)', hours: 3.5, description: 'Trabajo de microelectrónica pesada y reballing.' },
-  { name: 'Restablecimiento de Fábrica y Configuración de Dispositivos Móviles', hours: 1.0, description: 'Wipe data completo y configuración inicial para el cliente.' },
+  { name: 'Cambio de pin de carga Micro USB - V8', hours: 1.0, basePrice: 24500, description: 'Reemplazo de puerto clásico.' },
+  { name: 'Cambio de pin de carga Micro USB - C',  hours: 1.5, basePrice: 31500, description: 'Reemplazo de puerto Tipo C.' },
+  { name: 'Cambio de Modulo MO (*1)',              hours: 1.5, basePrice: 24500, description: 'Reemplazo de display LCD/OLED.' },
+  { name: 'Cambio de microfono',                  hours: 1.0, basePrice: 24500, description: 'Reemplazo de micrófono.' },
+  { name: 'Cambio de Boton Desarme Simple',        hours: 0.5, basePrice: 14000, description: 'Reemplazo de flex simple.' },
+  { name: 'Flasheo Hard Reset',                   hours: 1.0, basePrice: 10500, description: 'Reinstalación de OS.' },
+  { name: 'FRP (*2)',                             hours: 1.5, basePrice: 17500, description: 'Desbloqueo de cuenta.' },
+  { name: 'Cambio de Componentes SMD No IC',      hours: 1.5, basePrice: 17500, description: 'Reemplazo de capacitores, diodos, etc.' },
+  { name: 'Cambio de IC',                         hours: 2.5, basePrice: 38500, description: 'Reemplazo de circuitos integrados.' },
+  { name: 'Reflow de Componentes de placa Main',  hours: 1.5, basePrice: 17500, description: 'Resoldado por calor.' },
+  { name: 'Cambio de Vidrio No modulo',           hours: 2.5, basePrice: 26600, description: 'Remoción de visor roto y laminado.' },
+  { name: 'Cambio de Camara',                     hours: 1.0, basePrice: 17500, description: 'Reemplazo de módulo de cámara.' },
+  { name: 'Crear cuenta de Google',               hours: 0.5, basePrice: 10500, description: 'Configuración inicial.' },
+  { name: 'Cambio de Bateria',                    hours: 0.5, basePrice: 17500, description: 'Reemplazo de batería.' },
+  { name: 'Diagnostico General',                  hours: 0.5, basePrice: 14000, description: 'Revisión técnica inicial.' },
+  { name: 'Mantenimiento Preventivo: Limpieza',   hours: 1.0, basePrice: 14000, description: 'Limpieza de hardware.' },
+  { name: 'Reparacion de Placa Main',             hours: 3.0, basePrice: 84000, description: 'Reparación a nivel componente.' },
+  { name: 'Reemplazo de Cable Flexible Interno',  hours: 1.0, basePrice: 24500, description: 'Cambio de flex.' },
+  { name: 'Limpieza Virus - Malware',             hours: 1.0, basePrice: 17500, description: 'Eliminación de software malicioso.' },
+  { name: 'Lavado quimico - Equipos Mojados',     hours: 2.5, basePrice: 14000, description: 'Lavado ultrasónico.' },
+  { name: 'Reparación avanzada mediante resoldado...', hours: 3.5, basePrice: 54486, description: 'Microelectrónica pesada y reballing.' },
+  { name: 'Restablecimiento de Fábrica y Configuración', hours: 1.0, basePrice: 27243, description: 'Wipe data y configuración.' },
 ];
 
 export function ServiceManager() {
@@ -55,6 +52,7 @@ export function ServiceManager() {
   const [formData, setFormData] = useState({
     name: '',
     hours: '1',
+    basePrice: '0',
     description: '',
   });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -62,6 +60,7 @@ export function ServiceManager() {
     id: string;
     name: string;
     hours: string;
+    basePrice: string;
     description: string;
   } | null>(null);
 
@@ -70,12 +69,13 @@ export function ServiceManager() {
       const serviceData: Omit<Service, 'id'> = {
         name: formData.name.trim(),
         hours: parseFloat(formData.hours),
+        basePrice: parseFloat(formData.basePrice) || 0,
       };
       if (formData.description.trim()) {
         serviceData.description = formData.description.trim();
       }
       addService(serviceData);
-      setFormData({ name: '', hours: '1', description: '' });
+      setFormData({ name: '', hours: '1', basePrice: '0', description: '' });
     }
   };
 
@@ -93,6 +93,7 @@ export function ServiceManager() {
       id: service.id,
       name: service.name,
       hours: service.hours.toString(),
+      basePrice: service.basePrice.toString(),
       description: service.description || '',
     });
     setIsEditModalOpen(true);
@@ -103,6 +104,7 @@ export function ServiceManager() {
     const updateData: Parameters<typeof updateService>[0]['data'] = {
       name: selectedService.name.trim(),
       hours: parseFloat(selectedService.hours),
+      basePrice: parseFloat(selectedService.basePrice) || 0,
     };
     if (selectedService.description.trim()) {
       updateData.description = selectedService.description.trim();
@@ -149,9 +151,9 @@ export function ServiceManager() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
-            {/* Fila 1: Nombre del Servicio (75%) | Horas (25%) */}
+            {/* Fila 1: Nombre del Servicio (50%) | Horas (25%) | Precio M.O. (25%) */}
             <div className="grid grid-cols-4 gap-4">
-              <div className="col-span-3">
+              <div className="col-span-2">
                 <Label>Nombre del Servicio</Label>
                 <Input
                   value={formData.name}
@@ -177,6 +179,19 @@ export function ServiceManager() {
                     hrs
                   </span>
                 </div>
+              </div>
+
+              <div className="col-span-1">
+                <Label>Precio M.O. ($)</Label>
+                <Input
+                  type="number"
+                  step="500"
+                  min="0"
+                  value={formData.basePrice}
+                  onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })}
+                  onKeyDown={(e) => e.key === 'Enter' && isFormValid && handleAddService()}
+                  placeholder="0"
+                />
               </div>
             </div>
 
@@ -265,10 +280,17 @@ export function ServiceManager() {
                       {service.name}
                     </h3>
 
-                    {/* Time Badge */}
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium mb-2">
-                      <Clock className="h-3 w-3" />
-                      <span>{service.hours} hrs</span>
+                    {/* Badges row: horas + precio M.O. */}
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium">
+                        <Clock className="h-3 w-3" />
+                        <span>{service.hours} hrs</span>
+                      </div>
+                      {service.basePrice > 0 && (
+                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-400 text-xs font-medium">
+                          <span>M.O. ${service.basePrice.toLocaleString('es-AR')}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Description */}
@@ -330,22 +352,37 @@ export function ServiceManager() {
                 />
               </div>
 
-              {/* Horas */}
-              <div className="grid gap-2">
-                <Label htmlFor="edit-svc-hours">Horas</Label>
-                <div className="relative">
+              {/* Horas + Precio M.O. */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-svc-hours">Horas</Label>
+                  <div className="relative">
+                    <Input
+                      id="edit-svc-hours"
+                      type="number"
+                      step="0.25"
+                      min="0.25"
+                      value={selectedService.hours}
+                      onChange={(e) => setSelectedService({ ...selectedService, hours: e.target.value })}
+                      className="pr-10"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                      hrs
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-svc-base-price">Precio M.O. ($)</Label>
                   <Input
-                    id="edit-svc-hours"
+                    id="edit-svc-base-price"
                     type="number"
-                    step="0.25"
-                    min="0.25"
-                    value={selectedService.hours}
-                    onChange={(e) => setSelectedService({ ...selectedService, hours: e.target.value })}
-                    className="pr-10"
+                    step="500"
+                    min="0"
+                    value={selectedService.basePrice}
+                    onChange={(e) => setSelectedService({ ...selectedService, basePrice: e.target.value })}
+                    placeholder="0"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                    hrs
-                  </span>
                 </div>
               </div>
 
