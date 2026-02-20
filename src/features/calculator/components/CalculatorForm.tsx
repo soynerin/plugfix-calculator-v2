@@ -6,6 +6,7 @@ import { useModels } from '@/features/inventory/hooks/useModels';
 import { useServices } from '@/features/inventory/hooks/useServices';
 import { usePartTypes } from '@/features/inventory/hooks/usePartTypes';
 import { usePriceCalculator } from '../hooks/usePriceCalculator';
+import { PriceCalculator } from '@/core/services/PriceCalculator';
 import { useHistory } from '@/features/history/hooks/useHistory';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Button } from '@/shared/ui/button';
@@ -51,6 +52,7 @@ export function CalculatorForm() {
     parseFloat(formData.partCost) > 1500;
 
   const [result, setResult] = useState<PriceBreakdown | null>(null);
+  const [frpSecurityMultiplier, setFrpSecurityMultiplier] = useState<1 | 2 | 3>(1);
   const resultCardRef = useRef<HTMLDivElement>(null);
 
   // Filtrar modelos por marca seleccionada
@@ -61,6 +63,7 @@ export function CalculatorForm() {
   const selectedModel = models.find((m) => m.id === formData.modelId);
   const selectedService = services.find((s) => s.id === formData.serviceId);
   const selectedBrand = brands.find((b) => b.id === formData.brandId);
+  const isCurrentServiceFrp = selectedService ? PriceCalculator.isFrpService(selectedService.name) : false;
   // Recalcular automáticamente cuando cambien los campos relevantes
   useEffect(() => {
     if (!formData.modelId || !formData.serviceId) {
@@ -71,16 +74,19 @@ export function CalculatorForm() {
     const service = services.find((s) => s.id === formData.serviceId);
     if (!service) return;
 
-    const isModuleService = /pantalla|módulo|modulo|screen/i.test(service.name);
+    const isModuleService = PriceCalculator.isModuleService(service.name);
+    const isFrp = PriceCalculator.isFrpService(service.name);
 
     const breakdown = calculate({
-      partCost: parseFloat(formData.partCost) || 0,
+      partCost: isFrp ? 0 : (parseFloat(formData.partCost) || 0),
       currency: formData.currency,
       isModuleService,
+      isFrpService: isFrp,
+      frpSecurityMultiplier,
     });
 
     setResult(breakdown);
-  }, [formData.modelId, formData.serviceId, formData.partCost, formData.currency, services, calculate]);
+  }, [formData.modelId, formData.serviceId, formData.partCost, formData.currency, services, calculate, frpSecurityMultiplier]);
 
   const handleSaveToHistory = () => {
     if (!result || !selectedModel || !selectedService || !selectedBrand) {
@@ -134,6 +140,7 @@ export function CalculatorForm() {
       supplier: '',
     });
     setResult(null);
+    setFrpSecurityMultiplier(1);
   };
 
   const scrollToResult = () => {
@@ -288,6 +295,38 @@ export function CalculatorForm() {
             </div>
           </div>
 
+          {/* FRP: Nivel de Seguridad */}
+          <AnimatePresence>
+            {isCurrentServiceFrp && (
+              <motion.div
+                key="frp-security"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <Label>Nivel de Seguridad (Parche)</Label>
+                <Select
+                  value={String(frpSecurityMultiplier)}
+                  onValueChange={(v) => setFrpSecurityMultiplier(Number(v) as 1 | 2 | 3)}
+                >
+                  <SelectTrigger className="min-h-[44px] mt-1.5">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Baja (×1) — Precio base</SelectItem>
+                    <SelectItem value="2">Media (×2) — Doble del valor</SelectItem>
+                    <SelectItem value="3">Alta / Último Parche (×3) — Triple del valor</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Según CATEA, el FRP puede triplicar su valor según el nivel de seguridad del equipo.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Diagnóstico opcional */}
           <div>
             <Label htmlFor="diagnosis">Diagnóstico / Falla detectada <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
@@ -436,28 +475,50 @@ export function CalculatorForm() {
                     <span>Concepto</span>
                     <span>Importe</span>
                   </div>
-                  <motion.div
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.15 }}
-                    className="flex justify-between items-center py-2"
-                  >
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Repuestos</span>
-                    <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-                      <AnimatedNumber value={result.partCostARS} currency="ARS" />
-                    </span>
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="flex justify-between items-center py-2"
-                  >
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Mano de Obra Especializada</span>
-                    <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-                      <AnimatedNumber value={result.laborCostARS} currency="ARS" />
-                    </span>
-                  </motion.div>
+                  {result.usedFrpRule ? (
+                    <motion.div
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.15 }}
+                      className="flex justify-between items-center py-2"
+                    >
+                      <span className="text-sm text-gray-700 dark:text-gray-300">Desbloqueo de Seguridad (FRP)</span>
+                      <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                        <AnimatedNumber value={result.finalPriceARS} currency="ARS" />
+                      </span>
+                    </motion.div>
+                  ) : (
+                    <>
+                      <motion.div
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.15 }}
+                        className="flex justify-between items-center py-2"
+                      >
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          {result.usedCateaRule ? 'Repuesto (Pesificado)' : 'Repuestos'}
+                        </span>
+                        <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                          <AnimatedNumber value={result.partCostARS} currency="ARS" />
+                        </span>
+                      </motion.div>
+                      <motion.div
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="flex justify-between items-center py-2"
+                      >
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          {result.usedCateaRule
+                            ? 'Labor CATEA (x2 + 10%)'
+                            : 'Mano de Obra Especializada'}
+                        </span>
+                        <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                          <AnimatedNumber value={result.laborCostARS} currency="ARS" />
+                        </span>
+                      </motion.div>
+                    </>
+                  )}
                 </div>
 
                 {/* Dashed separator */}

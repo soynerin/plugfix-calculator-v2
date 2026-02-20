@@ -24,4 +24,8 @@ export interface PriceBreakdown {
   marginARS: number;
   finalPriceARS: number;
   finalPriceUSD: number;
+  /** true cuando se aplicó la Regla CATEA (ganancia ≥ mano de obra mínima) */
+  usedCateaRule?: boolean;
+  /** true cuando se aplicó el cálculo FRP (Desbloqueo de Cuenta Google) */
+  usedFrpRule?: boolean;
 }

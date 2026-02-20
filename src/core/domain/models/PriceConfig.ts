@@ -13,5 +13,5 @@ export const DEFAULT_CONFIG: Omit<PriceConfig, 'id'> = {
   usdRate: 1200,
   defaultMargin: 80,
   minimumLaborCost: 15000,
-  applyCateaModuleRule: false,
+  applyCateaModuleRule: true,
 };

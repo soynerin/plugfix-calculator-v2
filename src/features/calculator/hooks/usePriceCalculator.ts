@@ -12,6 +12,10 @@ export interface SimplifiedCalculationParams {
   currency: 'ARS' | 'USD';
   /** true cuando el servicio seleccionado es un cambio de módulo/pantalla */
   isModuleService?: boolean;
+  /** true cuando el servicio es FRP / Cuenta Google */
+  isFrpService?: boolean;
+  /** Multiplicador por nivel de seguridad para FRP (1=Baja, 2=Media, 3=Alta) */
+  frpSecurityMultiplier?: 1 | 2 | 3;
 }
 
 export function usePriceCalculator() {
@@ -29,6 +33,8 @@ export function usePriceCalculator() {
         minimumLaborCost: config.minimumLaborCost,
         applyCateaModuleRule: config.applyCateaModuleRule,
         isModuleService: params.isModuleService ?? false,
+        isFrpService: params.isFrpService ?? false,
+        frpSecurityMultiplier: params.frpSecurityMultiplier,
       };
 
       const validation = PriceCalculator.validateParams(fullParams);
@@ -54,6 +60,8 @@ export function usePriceCalculator() {
         minimumLaborCost: config.minimumLaborCost,
         applyCateaModuleRule: config.applyCateaModuleRule,
         isModuleService: params.isModuleService ?? false,
+        isFrpService: params.isFrpService ?? false,
+        frpSecurityMultiplier: params.frpSecurityMultiplier,
       };
 
       return PriceCalculator.calculateFinalPrice(fullParams);

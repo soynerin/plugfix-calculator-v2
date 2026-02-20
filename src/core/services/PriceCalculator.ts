@@ -11,6 +11,8 @@ export interface CalculationParams {
   minimumLaborCost: number;        // Costo mínimo de mano de obra (ARS)
   applyCateaModuleRule: boolean;   // ¿Activar regla CATEA?
   isModuleService: boolean;        // ¿El servicio es cambio de módulo/pantalla?
+  isFrpService?: boolean;          // ¿El servicio es FRP / Cuenta Google?
+  frpSecurityMultiplier?: 1 | 2 | 3; // Multiplicador por nivel de seguridad FRP
 }
 
 /**
@@ -27,29 +29,65 @@ export class PriceCalculator {
     const {
       partCost, currency, usdRate,
       defaultMargin, minimumLaborCost,
-      applyCateaModuleRule, isModuleService,
+      isModuleService,
     } = params;
 
     // Normalizar costo del repuesto a ARS
     const rawPartARS = currency === 'USD' ? partCost * usdRate : partCost;
 
-    if (applyCateaModuleRule && isModuleService) {
-      // --- Fórmula CATEA: (RepuestoARS × 2) + 10% margen de seguridad ---
-      // El doble del costo cubre: 1× repuesto + 1× mano de obra especializada
-      // El 10% adicional es el margen de seguridad recomendado por CATEA
-      const laborCostARS   = rawPartARS;                    // 1× (labor = costo pieza)
-      const riskPremiumARS = rawPartARS * 2 * 0.10;         // 10% sobre el total × 2
-      const subtotalARS    = rawPartARS * 2 * 1.10;
-      const finalPriceARS  = Math.ceil(subtotalARS / 100) * 100;
+    if (isModuleService) {
+      // --- Fórmula CATEA: (RepuestoARS × 2) × 1.10 ---
+      // Se aplica siempre que el servicio sea de módulo/pantalla (detección por nombre).
+      // El flag applyCateaModuleRule es informativo/display; no bloquea el cálculo.
+      const cateaSuggestedPrice = rawPartARS * 2 * 1.10;
+      // Ganancia = precio sugerido CATEA − costo del repuesto
+      const gainResultante = cateaSuggestedPrice - rawPartARS; // rawPartARS × 1.20
 
+      if (gainResultante >= minimumLaborCost) {
+        // La ganancia supera la mano de obra mínima → aplicar Regla CATEA
+        const finalPriceARS = Math.ceil(cateaSuggestedPrice / 100) * 100;
+        return {
+          partCostARS:    Math.round(rawPartARS),
+          laborCostARS:   Math.round(gainResultante),
+          riskPremiumARS: 0,
+          subtotalARS:    Math.round(cateaSuggestedPrice),
+          marginARS:      0,
+          finalPriceARS,
+          finalPriceUSD:  Math.round((finalPriceARS / usdRate) * 100) / 100,
+          usedCateaRule:  true,
+        };
+      }
+
+      // Fallback: la ganancia CATEA es insuficiente → cobrar mano de obra mínima
+      const subtotalFallbackARS = rawPartARS + minimumLaborCost;
+      const finalPriceFallbackARS = Math.ceil(subtotalFallbackARS / 100) * 100;
       return {
-        partCostARS:   Math.round(rawPartARS),
-        laborCostARS:  Math.round(laborCostARS),
-        riskPremiumARS: Math.round(riskPremiumARS),
-        subtotalARS:   Math.round(subtotalARS),
-        marginARS:     0,
+        partCostARS:    Math.round(rawPartARS),
+        laborCostARS:   Math.round(minimumLaborCost),
+        riskPremiumARS: 0,
+        subtotalARS:    Math.round(subtotalFallbackARS),
+        marginARS:      0,
+        finalPriceARS:  finalPriceFallbackARS,
+        finalPriceUSD:  Math.round((finalPriceFallbackARS / usdRate) * 100) / 100,
+        usedCateaRule:  false,
+      };
+    }
+
+    // --- Fórmula FRP (Desbloqueo de Cuenta Google / Factory Reset Protection) ---
+    if (params.isFrpService) {
+      const multiplier = params.frpSecurityMultiplier ?? 1;
+      const frpTotal = minimumLaborCost * multiplier;
+      const finalPriceARS = Math.ceil(frpTotal / 100) * 100;
+      return {
+        partCostARS:    0,
+        laborCostARS:   Math.round(frpTotal),
+        riskPremiumARS: 0,
+        subtotalARS:    Math.round(frpTotal),
+        marginARS:      0,
         finalPriceARS,
-        finalPriceUSD: Math.round((finalPriceARS / usdRate) * 100) / 100,
+        finalPriceUSD:  Math.round((finalPriceARS / usdRate) * 100) / 100,
+        usedCateaRule:  false,
+        usedFrpRule:    true,
       };
     }
 
@@ -67,13 +105,36 @@ export class PriceCalculator {
       subtotalARS:    Math.round(subtotalARS),
       marginARS:      Math.round(marginARS),
       finalPriceARS,
-      finalPriceUSD: Math.round((finalPriceARS / usdRate) * 100) / 100,
+      finalPriceUSD:  Math.round((finalPriceARS / usdRate) * 100) / 100,
+      usedCateaRule:  false,
     };
   }
 
   static calculateFinalPrice(params: CalculationParams): { ars: number; usd: number } {
     const breakdown = this.calculate(params);
     return { ars: breakdown.finalPriceARS, usd: breakdown.finalPriceUSD };
+  }
+
+  /**
+   * Determina si el nombre de un servicio corresponde a un cambio de módulo/pantalla.
+   * Usa normalización NFD para ignorar tildes y es insensible a mayúsculas.
+   * FUENTE ÚNICA DE VERDAD — usar siempre este método en lugar de regex inline.
+   */
+  static isModuleService(serviceName: string): boolean {
+    const normalized = serviceName
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    return normalized.includes('modulo') || normalized.includes('pantalla') || normalized.includes('screen');
+  }
+
+  /**
+   * Determina si el nombre de un servicio corresponde a FRP / Cuenta Google.
+   * FUENTE ÚNICA DE VERDAD para la detección de FRP.
+   */
+  static isFrpService(serviceName: string): boolean {
+    const lower = serviceName.toLowerCase();
+    return lower.includes('frp') || lower.includes('cuenta de google') || lower.includes('cuenta google');
   }
 
   static validateParams(params: CalculationParams): { valid: boolean; errors: string[] } {

@@ -163,7 +163,7 @@ export function ConfigManager() {
 
   // ── Simulador en tiempo real ─────────────────────────────────────────────────
   const simService = services.find(s => s.id === simServiceId) ?? services[0];
-  const simIsModule = /pantalla|módulo|modulo|screen/i.test(simService?.name ?? '');
+  const simIsModule = PriceCalculator.isModuleService(simService?.name ?? '');
 
   const simulation = useMemo(() => {
     const usdRate          = parseFloat(formData.usdRate) || 1;
