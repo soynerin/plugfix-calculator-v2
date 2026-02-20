@@ -196,23 +196,21 @@ export function HistoryViewer() {
       {
         id: selectedEntry.id,
         data: {
-          clientName: trimmedClient || undefined,
-          notes: trimmedNotes || undefined,
           status: editForm.status,
-          supplier: trimmedSupplier || undefined,
+          ...(trimmedClient ? { clientName: trimmedClient } : {}),
+          ...(trimmedNotes ? { notes: trimmedNotes } : {}),
+          ...(trimmedSupplier ? { supplier: trimmedSupplier } : {}),
         },
       },
       {
         onSuccess: () => {
           setSelectedEntry(prev => {
             if (!prev) return null;
-            return {
-              ...prev,
-              clientName: trimmedClient || undefined,
-              notes: trimmedNotes || undefined,
-              status: editForm.status,
-              supplier: trimmedSupplier || undefined,
-            };
+            const next: RepairHistory = { ...prev, status: editForm.status };
+            if (trimmedClient) next.clientName = trimmedClient; else delete next.clientName;
+            if (trimmedNotes) next.notes = trimmedNotes; else delete next.notes;
+            if (trimmedSupplier) next.supplier = trimmedSupplier; else delete next.supplier;
+            return next;
           });
           setIsEditing(false);
           toast({

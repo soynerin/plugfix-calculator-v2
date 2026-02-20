@@ -813,7 +813,8 @@ export class SupabaseAdapter implements IDatabaseService {
           finalPrice: entry.finalPrice,
           breakdown: entry.breakdown,
           date: new Date(entry.date),
-          notes: entry.notes
+          notes: entry.notes,
+          status: entry.status ?? 'pendiente',
         });
       }
     }

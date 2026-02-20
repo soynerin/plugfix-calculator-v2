@@ -34,7 +34,7 @@ export function usePriceCalculator() {
         applyCateaModuleRule: config.applyCateaModuleRule,
         isModuleService: params.isModuleService ?? false,
         isFrpService: params.isFrpService ?? false,
-        frpSecurityMultiplier: params.frpSecurityMultiplier,
+        ...(params.frpSecurityMultiplier !== undefined ? { frpSecurityMultiplier: params.frpSecurityMultiplier } : {}),
       };
 
       const validation = PriceCalculator.validateParams(fullParams);
@@ -61,7 +61,7 @@ export function usePriceCalculator() {
         applyCateaModuleRule: config.applyCateaModuleRule,
         isModuleService: params.isModuleService ?? false,
         isFrpService: params.isFrpService ?? false,
-        frpSecurityMultiplier: params.frpSecurityMultiplier,
+        ...(params.frpSecurityMultiplier !== undefined ? { frpSecurityMultiplier: params.frpSecurityMultiplier } : {}),
       };
 
       return PriceCalculator.calculateFinalPrice(fullParams);
