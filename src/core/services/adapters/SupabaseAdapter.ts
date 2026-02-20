@@ -600,6 +600,22 @@ export class SupabaseAdapter implements IDatabaseService {
     return this.mapHistoryFromDB(data);
   }
 
+  async updateHistory(id: string, data: Pick<RepairHistory, 'clientName' | 'notes'>): Promise<RepairHistory> {
+    const { data: updated, error } = await this.client
+      .from('history')
+      .update({
+        client_name: data.clientName ?? null,
+        notes: data.notes ?? null,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to update history entry: ${error.message}`);
+
+    return this.mapHistoryFromDB(updated);
+  }
+
   async deleteHistory(id: string): Promise<void> {
     const { error } = await this.client
       .from('history')

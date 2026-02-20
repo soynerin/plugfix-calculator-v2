@@ -24,6 +24,15 @@ export function useHistory(filters?: HistoryFilters) {
     }
   });
 
+  // Actualizar cliente/notas de una entrada
+  const updateHistory = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Pick<RepairHistory, 'clientName' | 'notes'> }) =>
+      db.updateHistory(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['history'] });
+    },
+  });
+
   // Eliminar entrada
   const deleteHistory = useMutation({
     mutationFn: (id: string) => db.deleteHistory(id),
@@ -47,9 +56,11 @@ export function useHistory(filters?: HistoryFilters) {
     history: history || [],
     isLoading,
     isAdding: addHistory.isPending,
+    isUpdating: updateHistory.isPending,
     deletingHistoryId: deleteHistory.isPending ? deleteHistory.variables : undefined,
     error,
     addHistory: addHistory.mutate,
+    updateHistory: updateHistory.mutate,
     deleteHistory: deleteHistory.mutate,
     exportHistory,
   };

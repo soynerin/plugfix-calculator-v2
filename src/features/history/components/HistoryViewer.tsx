@@ -3,12 +3,13 @@ import { useHistory } from '../hooks/useHistory';
 import { useBrands } from '@/features/inventory/hooks/useBrands';
 import { useModels } from '@/features/inventory/hooks/useModels';
 import { useConfirm } from '@/shared/hooks/useConfirm';
+import { useToast } from '@/shared/hooks/use-toast';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Spinner } from '@/shared/components/Spinner';
-import { Trash2, Download, Search, Filter, ClipboardList, ChevronDown, ChevronUp, User, Calendar } from 'lucide-react';
+import { Trash2, Download, Search, Filter, ClipboardList, ChevronDown, ChevronUp, User, Calendar, Pencil, MessageCircle, Printer } from 'lucide-react';
 import { EmptyState } from '@/shared/ui/empty-state';
 import {
   Select,
@@ -56,9 +57,12 @@ export function HistoryViewer() {
 
   const { brands } = useBrands();
   const { models } = useModels();
-  const { history, isLoading, deletingHistoryId, deleteHistory, exportHistory } = useHistory(appliedFilters);
+  const { history, isLoading, deletingHistoryId, deleteHistory, exportHistory, updateHistory, isUpdating } = useHistory(appliedFilters);
   const { confirm } = useConfirm();
+  const { toast } = useToast();
   const [selectedEntry, setSelectedEntry] = useState<RepairHistory | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ clientName: '', notes: '' });
 
   // Filtrar modelos por marca seleccionada
   const filteredModels = localFilters.brandId && localFilters.brandId !== 'ALL'
@@ -129,6 +133,69 @@ export function HistoryViewer() {
         }, 300);
       },
     });
+  };
+
+  const handleCloseModal = () => {
+    setSelectedEntry(null);
+    setIsEditing(false);
+    setEditForm({ clientName: '', notes: '' });
+  };
+
+  const handleOpenEdit = (entry: RepairHistory, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditForm({
+      clientName: entry.clientName || '',
+      notes: entry.notes || '',
+    });
+    setIsEditing(true);
+    setSelectedEntry(entry);
+  };
+
+  const handleUpdateRecord = () => {
+    if (!selectedEntry) return;
+    const trimmedClient = editForm.clientName.trim();
+    const trimmedNotes = editForm.notes.trim();
+    updateHistory(
+      {
+        id: selectedEntry.id,
+        data: {
+          ...(trimmedClient ? { clientName: trimmedClient } : {}),
+          ...(trimmedNotes ? { notes: trimmedNotes } : {}),
+        },
+      },
+      {
+        onSuccess: () => {
+          setSelectedEntry(prev => {
+            if (!prev) return null;
+            const next = { ...prev };
+            if (trimmedClient) next.clientName = trimmedClient;
+            else delete next.clientName;
+            if (trimmedNotes) next.notes = trimmedNotes;
+            else delete next.notes;
+            return next;
+          });
+          setIsEditing(false);
+          toast({
+            title: 'Cambios guardados',
+            description: 'Los datos del cliente se actualizaron correctamente.',
+          });
+        },
+        onError: () => {
+          toast({
+            title: 'Error al guardar',
+            description: 'No se pudieron guardar los cambios. Intenta de nuevo.',
+            variant: 'destructive',
+          });
+        },
+      }
+    );
+  };
+
+  const handleWhatsAppShareEntry = (entry: RepairHistory) => {
+    const saludo = entry.clientName?.trim() ? `Hola ${entry.clientName.trim()},` : 'Hola!';
+    const diagnosticoTexto = entry.notes?.trim() ? `\nDiagnostico: ${entry.notes.trim()}` : '';
+    const mensaje = `${saludo}\nTe comparto el presupuesto detallado para tu reparacion:\n\nEquipo: ${entry.brand} ${entry.model}\nServicio: ${entry.service}${diagnosticoTexto}\n\n*Total: ${formatARS(entry.finalPrice)}*\n*Presupuesto valido por 15 dias.*\n\nQuedo a tu disposicion por cualquier consulta. Saludos!`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank', 'noopener,noreferrer');
   };
 
   const formatDate = (date: Date) => {
@@ -364,29 +431,47 @@ export function HistoryViewer() {
                         <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
                           {formatARS(entry.finalPrice)}
                         </div>
-                        <button
-                          onClick={(e) => handleDelete(entry.id, entry.clientName || 'este cliente', e)}
-                          disabled={deletingHistoryId === entry.id}
-                          className="
-                            inline-flex items-center justify-center
-                            h-10 w-10 
-                            rounded-lg 
-                            text-gray-400 
-                            hover:text-red-500 
-                            hover:bg-red-50 
-                            dark:hover:bg-red-950/50
-                            transition-colors
-                            active:scale-95
-                            disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
-                          "
-                          title="Eliminar"
-                        >
-                          {deletingHistoryId === entry.id ? (
-                            <Spinner size="sm" variant="danger" />
-                          ) : (
-                            <Trash2 className="h-5 w-5" />
-                          )}
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => handleOpenEdit(entry, e)}
+                            className="
+                              inline-flex items-center justify-center
+                              h-10 w-10
+                              rounded-lg
+                              text-gray-400
+                              hover:text-primary
+                              hover:bg-primary/10
+                              transition-colors
+                              active:scale-95
+                            "
+                            title="Editar datos"
+                          >
+                            <Pencil className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={(e) => handleDelete(entry.id, entry.clientName || 'este cliente', e)}
+                            disabled={deletingHistoryId === entry.id}
+                            className="
+                              inline-flex items-center justify-center
+                              h-10 w-10 
+                              rounded-lg 
+                              text-gray-400 
+                              hover:text-red-500 
+                              hover:bg-red-50 
+                              dark:hover:bg-red-950/50
+                              transition-colors
+                              active:scale-95
+                              disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+                            "
+                            title="Eliminar"
+                          >
+                            {deletingHistoryId === entry.id ? (
+                              <Spinner size="sm" variant="danger" />
+                            ) : (
+                              <Trash2 className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -435,28 +520,45 @@ export function HistoryViewer() {
                               {formatARS(entry.finalPrice)}
                             </TableCell>
                             <TableCell className="text-center py-4">
-                              <button
-                                onClick={(e) => handleDelete(entry.id, entry.clientName || 'este cliente', e)}
-                                disabled={deletingHistoryId === entry.id}
-                                className="
-                                  inline-flex items-center justify-center
-                                  h-8 w-8 
-                                  rounded-md 
-                                  text-gray-400 
-                                  hover:text-red-500 
-                                  hover:bg-red-50 
-                                  dark:hover:bg-red-950/50
-                                  transition-colors
-                                  disabled:opacity-50 disabled:cursor-not-allowed
-                                "
-                                title="Eliminar"
-                              >
-                                {deletingHistoryId === entry.id ? (
-                                  <Spinner size="sm" variant="danger" />
-                                ) : (
-                                  <Trash2 className="h-4 w-4" />
-                                )}
-                              </button>
+                              <div className="inline-flex items-center gap-1">
+                                <button
+                                  onClick={(e) => handleOpenEdit(entry, e)}
+                                  className="
+                                    inline-flex items-center justify-center
+                                    h-8 w-8
+                                    rounded-md
+                                    text-gray-400
+                                    hover:text-primary
+                                    hover:bg-primary/10
+                                    transition-colors
+                                  "
+                                  title="Editar datos"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={(e) => handleDelete(entry.id, entry.clientName || 'este cliente', e)}
+                                  disabled={deletingHistoryId === entry.id}
+                                  className="
+                                    inline-flex items-center justify-center
+                                    h-8 w-8 
+                                    rounded-md 
+                                    text-gray-400 
+                                    hover:text-red-500 
+                                    hover:bg-red-50 
+                                    dark:hover:bg-red-950/50
+                                    transition-colors
+                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                  "
+                                  title="Eliminar"
+                                >
+                                  {deletingHistoryId === entry.id ? (
+                                    <Spinner size="sm" variant="danger" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -471,114 +573,202 @@ export function HistoryViewer() {
       </Card>
 
       {/* Detail Modal */}
-      <Dialog open={!!selectedEntry} onOpenChange={(open) => !open && setSelectedEntry(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+      <Dialog open={!!selectedEntry} onOpenChange={(open) => !open && handleCloseModal()}>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
             <DialogTitle>Desglose de Reparación</DialogTitle>
             <DialogDescription>
               {selectedEntry && formatDate(selectedEntry.date)}
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedEntry && (
-            <div className="space-y-6">
-              {/* Client Info */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Cliente</p>
-                  <p className="font-medium">{selectedEntry.clientName || 'No especificado'}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Fecha</p>
-                  <p className="font-medium">{formatDate(selectedEntry.date)}</p>
-                </div>
-              </div>
-
-              {/* Device Info */}
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Marca</p>
-                  <p className="font-medium">{selectedEntry.brand}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Modelo</p>
-                  <p className="font-medium">{selectedEntry.model}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Servicio</p>
-                  <p className="font-medium">{selectedEntry.service}</p>
-                </div>
-              </div>
-
-              {/* Price Final Display */}
-              <div className="text-center p-6 bg-primary/5 rounded-lg border-2 border-primary">
-                <p className="text-sm text-muted-foreground mb-1">Precio Cobrado</p>
-                <p className="text-4xl font-bold text-primary">
-                  {formatARS(selectedEntry.finalPrice)}
-                </p>
-                <p className="text-lg text-muted-foreground mt-1">
-                  ≈ {formatUSD(selectedEntry.breakdown.finalPriceUSD)}
-                </p>
-              </div>
-
-              {/* Breakdown */}
-              <div className="space-y-3 text-sm">
-                <h3 className="font-semibold">Desglose del Cálculo:</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Costo Repuesto:</span>
-                    <span>
-                      {selectedEntry.currency === 'USD'
-                        ? formatUSD(selectedEntry.partCost)
-                        : formatARS(selectedEntry.partCost)}
-                    </span>
+            <>
+              <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+                {/* Client Info — Vista o Edición */}
+                {isEditing ? (
+                  <div className="space-y-3 p-4 bg-muted/40 rounded-lg border">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Editando datos del cliente</p>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="edit-client-name" className="text-sm font-medium">Nombre del Cliente</Label>
+                      <Input
+                        id="edit-client-name"
+                        value={editForm.clientName}
+                        onChange={(e) => setEditForm({ ...editForm, clientName: e.target.value })}
+                        placeholder="Nombre del cliente"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="edit-notes" className="text-sm font-medium">Diagnóstico / Notas</Label>
+                      <textarea
+                        id="edit-notes"
+                        rows={3}
+                        value={editForm.notes}
+                        onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                        placeholder="Diagnóstico, falla detectada, notas adicionales..."
+                        className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors"
+                      />
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Costo con Margen:</span>
-                    <span className="font-medium">
-                      {formatARS(selectedEntry.breakdown.partCostARS)}
-                    </span>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Cliente</p>
+                      <p className="font-medium">{selectedEntry.clientName || 'No especificado'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Fecha</p>
+                      <p className="font-medium">{formatDate(selectedEntry.date)}</p>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Mano de Obra:</span>
-                    <span className="font-medium">
-                      {formatARS(selectedEntry.breakdown.laborCostARS)}
-                    </span>
+                )}
+
+                {/* Device Info */}
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Marca</p>
+                    <p className="font-medium">{selectedEntry.brand}</p>
                   </div>
-                  {selectedEntry.breakdown.riskPremiumARS > 0 && (
+                  <div>
+                    <p className="text-muted-foreground">Modelo</p>
+                    <p className="font-medium">{selectedEntry.model}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Servicio</p>
+                    <p className="font-medium">{selectedEntry.service}</p>
+                  </div>
+                </div>
+
+                {/* Precio Final */}
+                <div className="text-center p-6 bg-primary/5 rounded-lg border-2 border-primary">
+                  <p className="text-sm text-muted-foreground mb-1">Precio Cobrado</p>
+                  <p className="text-4xl font-bold text-primary">
+                    {formatARS(selectedEntry.finalPrice)}
+                  </p>
+                  <p className="text-lg text-muted-foreground mt-1">
+                    ≈ {formatUSD(selectedEntry.breakdown.finalPriceUSD)}
+                  </p>
+                </div>
+
+                {/* Desglose */}
+                <div className="space-y-3 text-sm">
+                  <h3 className="font-semibold">Desglose del Cálculo:</h3>
+                  <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Prima de Riesgo:</span>
-                      <span className="font-medium">
-                        {formatARS(selectedEntry.breakdown.riskPremiumARS)}
+                      <span className="text-muted-foreground">Costo Repuesto:</span>
+                      <span>
+                        {selectedEntry.currency === 'USD'
+                          ? formatUSD(selectedEntry.partCost)
+                          : formatARS(selectedEntry.partCost)}
                       </span>
                     </div>
-                  )}
-                  <div className="pt-2 border-t flex justify-between">
-                    <span className="text-muted-foreground">Subtotal:</span>
-                    <span className="font-medium">
-                      {formatARS(selectedEntry.breakdown.subtotalARS)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Margen Aplicado:</span>
-                    <span className="font-medium">
-                      {formatARS(selectedEntry.breakdown.marginARS)}
-                    </span>
-                  </div>
-                  <div className="pt-2 border-t flex justify-between font-bold text-base">
-                    <span>Total (redondeado):</span>
-                    <span>{formatARS(selectedEntry.breakdown.finalPriceARS)}</span>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Costo con Margen:</span>
+                      <span className="font-medium">{formatARS(selectedEntry.breakdown.partCostARS)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Mano de Obra:</span>
+                      <span className="font-medium">{formatARS(selectedEntry.breakdown.laborCostARS)}</span>
+                    </div>
+                    {selectedEntry.breakdown.riskPremiumARS > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Prima de Riesgo:</span>
+                        <span className="font-medium">{formatARS(selectedEntry.breakdown.riskPremiumARS)}</span>
+                      </div>
+                    )}
+                    <div className="pt-2 border-t flex justify-between">
+                      <span className="text-muted-foreground">Subtotal:</span>
+                      <span className="font-medium">{formatARS(selectedEntry.breakdown.subtotalARS)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Margen Aplicado:</span>
+                      <span className="font-medium">{formatARS(selectedEntry.breakdown.marginARS)}</span>
+                    </div>
+                    <div className="pt-2 border-t flex justify-between font-bold text-base">
+                      <span>Total (redondeado):</span>
+                      <span>{formatARS(selectedEntry.breakdown.finalPriceARS)}</span>
+                    </div>
                   </div>
                 </div>
+
+                {!isEditing && selectedEntry.notes && (
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-muted-foreground mb-1">Notas:</p>
+                    <p className="text-sm">{selectedEntry.notes}</p>
+                  </div>
+                )}
               </div>
 
-              {selectedEntry.notes && (
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-muted-foreground mb-1">Notas:</p>
-                  <p className="text-sm">{selectedEntry.notes}</p>
-                </div>
-              )}
-            </div>
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t bg-muted/30 shrink-0 flex items-center justify-between gap-2">
+                {isEditing ? (
+                  <>
+                    <div />
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
+                        Cancelar
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white gap-2 min-w-[130px]"
+                        onClick={handleUpdateRecord}
+                        disabled={isUpdating}
+                      >
+                        {isUpdating ? (
+                          <>
+                            <Spinner size="sm" />
+                            Guardando...
+                          </>
+                        ) : (
+                          'Guardar Cambios'
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => window.print()}
+                      >
+                        <Printer className="h-4 w-4" />
+                        Imprimir
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => handleWhatsAppShareEntry(selectedEntry)}
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        WhatsApp
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => {
+                          setEditForm({ clientName: selectedEntry.clientName || '', notes: selectedEntry.notes || '' });
+                          setIsEditing(true);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                        Editar Datos
+                      </Button>
+                      <Button size="sm" onClick={handleCloseModal}>
+                        Cerrar
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
