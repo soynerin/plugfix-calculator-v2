@@ -35,7 +35,36 @@ import {
 } from '@/shared/ui/dialog';
 import { formatARS, formatUSD } from '@/shared/utils/formatters';
 import type { HistoryFilters } from '@/core/services';
-import type { RepairHistory } from '@/core/domain/models';
+import type { RepairHistory, RepairStatus } from '@/core/domain/models';
+
+// ── Status Badge ──────────────────────────────────────────────
+const STATUS_CONFIG: Record<RepairStatus, { label: string; className: string }> = {
+  pendiente: {
+    label: 'Pendiente',
+    className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+  },
+  aprobado: {
+    label: 'En Reparación',
+    className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+  },
+  entregado: {
+    label: 'Entregado',
+    className: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  },
+};
+
+function StatusBadge({ status }: { status: RepairStatus }) {
+  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.pendiente;
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${
+        cfg.className
+      }`}
+    >
+      {cfg.label}
+    </span>
+  );
+}
 
 export function HistoryViewer() {
   // Estado local para los inputs (no causa re-renderizado del historial)
@@ -62,7 +91,12 @@ export function HistoryViewer() {
   const { toast } = useToast();
   const [selectedEntry, setSelectedEntry] = useState<RepairHistory | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ clientName: '', notes: '' });
+  const [editForm, setEditForm] = useState({
+    clientName: '',
+    notes: '',
+    status: 'pendiente' as RepairStatus,
+    supplier: '',
+  });
 
   // Filtrar modelos por marca seleccionada
   const filteredModels = localFilters.brandId && localFilters.brandId !== 'ALL'
@@ -138,7 +172,7 @@ export function HistoryViewer() {
   const handleCloseModal = () => {
     setSelectedEntry(null);
     setIsEditing(false);
-    setEditForm({ clientName: '', notes: '' });
+    setEditForm({ clientName: '', notes: '', status: 'pendiente', supplier: '' });
   };
 
   const handleOpenEdit = (entry: RepairHistory, e: React.MouseEvent) => {
@@ -146,6 +180,8 @@ export function HistoryViewer() {
     setEditForm({
       clientName: entry.clientName || '',
       notes: entry.notes || '',
+      status: entry.status || 'pendiente',
+      supplier: entry.supplier || '',
     });
     setIsEditing(true);
     setSelectedEntry(entry);
@@ -155,29 +191,33 @@ export function HistoryViewer() {
     if (!selectedEntry) return;
     const trimmedClient = editForm.clientName.trim();
     const trimmedNotes = editForm.notes.trim();
+    const trimmedSupplier = editForm.supplier.trim();
     updateHistory(
       {
         id: selectedEntry.id,
         data: {
-          ...(trimmedClient ? { clientName: trimmedClient } : {}),
-          ...(trimmedNotes ? { notes: trimmedNotes } : {}),
+          clientName: trimmedClient || undefined,
+          notes: trimmedNotes || undefined,
+          status: editForm.status,
+          supplier: trimmedSupplier || undefined,
         },
       },
       {
         onSuccess: () => {
           setSelectedEntry(prev => {
             if (!prev) return null;
-            const next = { ...prev };
-            if (trimmedClient) next.clientName = trimmedClient;
-            else delete next.clientName;
-            if (trimmedNotes) next.notes = trimmedNotes;
-            else delete next.notes;
-            return next;
+            return {
+              ...prev,
+              clientName: trimmedClient || undefined,
+              notes: trimmedNotes || undefined,
+              status: editForm.status,
+              supplier: trimmedSupplier || undefined,
+            };
           });
           setIsEditing(false);
           toast({
             title: 'Cambios guardados',
-            description: 'Los datos del cliente se actualizaron correctamente.',
+            description: 'El estado y los datos del cliente se actualizaron correctamente.',
           });
         },
         onError: () => {
@@ -232,13 +272,13 @@ export function HistoryViewer() {
             <div>
               <CardTitle className="text-2xl font-bold flex items-center gap-2">
                 <ClipboardList className="h-6 w-6" />
-                Historial de Reparaciones
+                Órdenes y Presupuestos
                 <span className="text-muted-foreground font-normal text-lg">({history.length})</span>
               </CardTitle>
               <CardDescription className="mt-1">
                 {history.length === 0
-                  ? 'No hay reparaciones registradas'
-                  : 'Filtra y consulta el historial completo de reparaciones'}
+                  ? 'No hay órdenes registradas'
+                  : 'Filtra y consulta el historial completo de órdenes y presupuestos'}
               </CardDescription>
             </div>
           </div>
@@ -428,8 +468,11 @@ export function HistoryViewer() {
 
                       {/* Pie */}
                       <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                        <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                          {formatARS(entry.finalPrice)}
+                        <div className="flex flex-col gap-1">
+                          <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                            {formatARS(entry.finalPrice)}
+                          </div>
+                          <StatusBadge status={entry.status || 'pendiente'} />
                         </div>
                         <div className="flex items-center gap-1">
                           <button
@@ -490,6 +533,7 @@ export function HistoryViewer() {
                           <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400">Servicio</TableHead>
                           <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400 text-right">Costo Rep.</TableHead>
                           <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400 text-right">Precio Final</TableHead>
+                          <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400 text-center">Estado</TableHead>
                           <TableHead className="text-xs uppercase font-medium text-gray-500 dark:text-gray-400 text-center">Acciones</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -518,6 +562,9 @@ export function HistoryViewer() {
                             </TableCell>
                             <TableCell className="text-sm text-right font-semibold py-4 text-gray-900 dark:text-gray-100">
                               {formatARS(entry.finalPrice)}
+                            </TableCell>
+                            <TableCell className="text-center py-4">
+                              <StatusBadge status={entry.status || 'pendiente'} />
                             </TableCell>
                             <TableCell className="text-center py-4">
                               <div className="inline-flex items-center gap-1">
@@ -610,6 +657,33 @@ export function HistoryViewer() {
                         className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors"
                       />
                     </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="edit-status" className="text-sm font-medium">Estado de la Orden</Label>
+                        <Select
+                          value={editForm.status}
+                          onValueChange={(v) => setEditForm({ ...editForm, status: v as RepairStatus })}
+                        >
+                          <SelectTrigger id="edit-status">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pendiente">Pendiente</SelectItem>
+                            <SelectItem value="aprobado">En Reparación</SelectItem>
+                            <SelectItem value="entregado">Entregado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="edit-supplier" className="text-sm font-medium">Proveedor del Repuesto</Label>
+                        <Input
+                          id="edit-supplier"
+                          value={editForm.supplier}
+                          onChange={(e) => setEditForm({ ...editForm, supplier: e.target.value })}
+                          placeholder="Ej: CellCenter"
+                        />
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-4 text-sm">
@@ -657,11 +731,18 @@ export function HistoryViewer() {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Costo Repuesto:</span>
-                      <span>
-                        {selectedEntry.currency === 'USD'
-                          ? formatUSD(selectedEntry.partCost)
-                          : formatARS(selectedEntry.partCost)}
-                      </span>
+                      <div className="text-right">
+                        <span>
+                          {selectedEntry.currency === 'USD'
+                            ? formatUSD(selectedEntry.partCost)
+                            : formatARS(selectedEntry.partCost)}
+                        </span>
+                        {selectedEntry.supplier && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Prov: {selectedEntry.supplier}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Costo con Margen:</span>
@@ -691,6 +772,14 @@ export function HistoryViewer() {
                     </div>
                   </div>
                 </div>
+
+                {/* Estado de la Orden */}
+                {!isEditing && (
+                  <div className="flex items-center justify-between pt-2">
+                    <p className="text-sm text-muted-foreground">Estado:</p>
+                    <StatusBadge status={selectedEntry.status || 'pendiente'} />
+                  </div>
+                )}
 
                 {!isEditing && selectedEntry.notes && (
                   <div className="pt-4 border-t">
@@ -754,7 +843,12 @@ export function HistoryViewer() {
                         size="sm"
                         className="gap-1.5"
                         onClick={() => {
-                          setEditForm({ clientName: selectedEntry.clientName || '', notes: selectedEntry.notes || '' });
+                          setEditForm({
+                            clientName: selectedEntry.clientName || '',
+                            notes: selectedEntry.notes || '',
+                            status: selectedEntry.status || 'pendiente',
+                            supplier: selectedEntry.supplier || '',
+                          });
                           setIsEditing(true);
                         }}
                       >

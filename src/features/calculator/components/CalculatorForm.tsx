@@ -43,6 +43,7 @@ export function CalculatorForm() {
     partCost: '',
     currency: 'USD' as 'ARS' | 'USD',
     diagnosis: '',
+    supplier: '',
   });
 
   const showUSDWarning =
@@ -95,6 +96,7 @@ export function CalculatorForm() {
       finalPrice: result.finalPriceARS,
       breakdown: result,
       date: new Date(),
+      status: 'pendiente',
     };
 
     if (formData.clientName.trim()) {
@@ -103,6 +105,10 @@ export function CalculatorForm() {
 
     if (formData.diagnosis.trim()) {
       historyEntry.notes = formData.diagnosis.trim();
+    }
+
+    if (formData.supplier.trim()) {
+      historyEntry.supplier = formData.supplier.trim();
     }
 
     addHistory(historyEntry);
@@ -125,6 +131,7 @@ export function CalculatorForm() {
       partCost: '',
       currency: 'USD',
       diagnosis: '',
+      supplier: '',
     });
     setResult(null);
   };
@@ -340,6 +347,21 @@ export function CalculatorForm() {
                 </motion.p>
               )}
             </AnimatePresence>
+          </div>
+
+          {/* Proveedor del Repuesto */}
+          <div>
+            <Label htmlFor="supplier">
+              Proveedor del Repuesto{' '}
+              <span className="text-muted-foreground font-normal text-xs">(Opcional)</span>
+            </Label>
+            <Input
+              id="supplier"
+              value={formData.supplier}
+              onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+              placeholder="Ej: CellCenter, MercadoLibre, Casa Matrices..."
+              className="min-h-[44px] mt-1.5"
+            />
           </div>
         </CardContent>
       </Card>

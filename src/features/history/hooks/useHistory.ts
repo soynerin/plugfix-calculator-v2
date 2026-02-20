@@ -24,9 +24,9 @@ export function useHistory(filters?: HistoryFilters) {
     }
   });
 
-  // Actualizar cliente/notas de una entrada
+  // Actualizar campos editables de una entrada
   const updateHistory = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Pick<RepairHistory, 'clientName' | 'notes'> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Pick<RepairHistory, 'clientName' | 'notes' | 'status' | 'supplier'> }) =>
       db.updateHistory(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['history'] });

@@ -1,3 +1,5 @@
+export type RepairStatus = 'pendiente' | 'aprobado' | 'entregado';
+
 export interface RepairHistory {
   id: string;
   clientName?: string;
@@ -10,6 +12,8 @@ export interface RepairHistory {
   breakdown: PriceBreakdown;
   date: Date;
   notes?: string;
+  status: RepairStatus;
+  supplier?: string;
 }
 
 export interface PriceBreakdown {

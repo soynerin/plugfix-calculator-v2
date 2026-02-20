@@ -58,7 +58,7 @@ export interface IDatabaseService {
   getAllHistory(): Promise<RepairHistory[]>;
   getHistoryById(id: string): Promise<RepairHistory | null>;
   addHistory(entry: Omit<RepairHistory, 'id'>): Promise<RepairHistory>;
-  updateHistory(id: string, data: Pick<RepairHistory, 'clientName' | 'notes'>): Promise<RepairHistory>;
+  updateHistory(id: string, data: Pick<RepairHistory, 'clientName' | 'notes' | 'status' | 'supplier'>): Promise<RepairHistory>;
   deleteHistory(id: string): Promise<void>;
   searchHistory(filters: HistoryFilters): Promise<RepairHistory[]>;
   exportHistory(format: 'csv' | 'json'): Promise<Blob>;

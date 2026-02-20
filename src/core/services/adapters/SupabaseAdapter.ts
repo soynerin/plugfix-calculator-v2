@@ -590,7 +590,9 @@ export class SupabaseAdapter implements IDatabaseService {
         final_price: entry.finalPrice,
         breakdown: entry.breakdown,
         date: entry.date.toISOString(),
-        notes: entry.notes || null
+        notes: entry.notes || null,
+        status: entry.status || 'pendiente',
+        supplier: entry.supplier || null,
       })
       .select()
       .single();
@@ -600,12 +602,14 @@ export class SupabaseAdapter implements IDatabaseService {
     return this.mapHistoryFromDB(data);
   }
 
-  async updateHistory(id: string, data: Pick<RepairHistory, 'clientName' | 'notes'>): Promise<RepairHistory> {
+  async updateHistory(id: string, data: Pick<RepairHistory, 'clientName' | 'notes' | 'status' | 'supplier'>): Promise<RepairHistory> {
     const { data: updated, error } = await this.client
       .from('history')
       .update({
         client_name: data.clientName ?? null,
         notes: data.notes ?? null,
+        status: data.status,
+        supplier: data.supplier ?? null,
       })
       .eq('id', id)
       .select()
@@ -897,7 +901,9 @@ export class SupabaseAdapter implements IDatabaseService {
       finalPrice: data.final_price,
       breakdown: data.breakdown,
       date: new Date(data.date || Date.now()),
-      ...(data.notes && { notes: data.notes })
+      ...(data.notes && { notes: data.notes }),
+      status: (data.status as 'pendiente' | 'aprobado' | 'entregado') || 'pendiente',
+      ...(data.supplier && { supplier: data.supplier }),
     };
   }
 }
