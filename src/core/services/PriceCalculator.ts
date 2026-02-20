@@ -19,10 +19,10 @@ export interface CalculationParams {
  * PriceCalculator — Lógica pura de cálculo de precios (modelo CATEA v2.0)
  *
  * Fórmula estándar:
- *   PrecioFinal = ceil((RepuestoARS × (1 + margen%) + ManoDeObraMínima) / 100) × 100
+ *   PrecioFinal = ceil((RepuestoARS × (1 + margen%) + ManoDeObraMínima) / 1000) × 1000
  *
  * Fórmula CATEA (pantallas/módulos con regla activada):
- *   PrecioFinal = ceil((RepuestoARS × 2 × 1.10) / 100) × 100
+ *   PrecioFinal = ceil((RepuestoARS × 2 × 1.10) / 1000) × 1000
  */
 export class PriceCalculator {
   static calculate(params: CalculationParams): PriceBreakdown {
@@ -45,7 +45,7 @@ export class PriceCalculator {
 
       if (gainResultante >= minimumLaborCost) {
         // La ganancia supera la mano de obra mínima → aplicar Regla CATEA
-        const finalPriceARS = Math.ceil(cateaSuggestedPrice / 100) * 100;
+        const finalPriceARS = Math.ceil(cateaSuggestedPrice / 1000) * 1000;
         return {
           partCostARS:    Math.round(rawPartARS),
           laborCostARS:   Math.round(gainResultante),
@@ -60,7 +60,7 @@ export class PriceCalculator {
 
       // Fallback: la ganancia CATEA es insuficiente → cobrar mano de obra mínima
       const subtotalFallbackARS = rawPartARS + minimumLaborCost;
-      const finalPriceFallbackARS = Math.ceil(subtotalFallbackARS / 100) * 100;
+      const finalPriceFallbackARS = Math.ceil(subtotalFallbackARS / 1000) * 1000;
       return {
         partCostARS:    Math.round(rawPartARS),
         laborCostARS:   Math.round(minimumLaborCost),
@@ -77,7 +77,7 @@ export class PriceCalculator {
     if (params.isFrpService) {
       const multiplier = params.frpSecurityMultiplier ?? 1;
       const frpTotal = minimumLaborCost * multiplier;
-      const finalPriceARS = Math.ceil(frpTotal / 100) * 100;
+      const finalPriceARS = Math.ceil(frpTotal / 1000) * 1000;
       return {
         partCostARS:    0,
         laborCostARS:   Math.round(frpTotal),
@@ -96,7 +96,7 @@ export class PriceCalculator {
     const partWithMarginARS  = rawPartARS + marginARS;
     const laborCostARS       = minimumLaborCost;
     const subtotalARS        = partWithMarginARS + laborCostARS;
-    const finalPriceARS      = Math.ceil(subtotalARS / 100) * 100;
+    const finalPriceARS      = Math.ceil(subtotalARS / 1000) * 1000;
 
     return {
       partCostARS:    Math.round(rawPartARS),
