@@ -15,7 +15,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import {
   DollarSign, TrendingUp, Percent, Zap, RefreshCw,
-  Info, ShieldCheck, Calculator,
+  Info, ShieldCheck, Calculator, AlertTriangle,
 } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 import { useToast } from '@/shared/hooks/use-toast';
@@ -138,6 +138,31 @@ export function ConfigManager() {
         applyCateaModuleRule: config.applyCateaModuleRule,
       });
       toast({ title: 'Valores restaurados', description: 'Se han restaurado los últimos valores guardados.' });
+    }
+  };
+
+  const handleActivateCatea = async () => {
+    const updated = { ...formData, applyCateaModuleRule: true };
+    setFormData(updated);
+    try {
+      await updateConfigAsync({
+        usdRate:          parseFloat(updated.usdRate),
+        defaultMargin:    parseFloat(updated.defaultMargin),
+        minimumLaborCost: laborCostCurrency === 'USD'
+          ? parseFloat(updated.minimumLaborCost) * (parseFloat(updated.usdRate) || 1)
+          : parseFloat(updated.minimumLaborCost),
+        applyCateaModuleRule: true,
+      });
+      toast({
+        title: '✅ Regla CATEA activada',
+        description: 'La fórmula especial de módulos ya está activa.',
+      });
+    } catch (error) {
+      toast({
+        title: '❌ Error al guardar',
+        description: error instanceof Error ? error.message : 'No se pudo actualizar la configuración',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -350,7 +375,12 @@ export function ConfigManager() {
           </CardContent>
         </Card>
 
-        {/* Tarjeta 2: Reglas Especiales CATEA */}
+      </div>
+
+      {/* ── Columna Derecha ────────────────────────────────────────────────────── */}
+      <div className="space-y-5">
+
+        {/* Tarjeta: Reglas Especiales CATEA */}
         <Card className="shadow-lg border-amber-200 dark:border-amber-800/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -403,20 +433,19 @@ export function ConfigManager() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* ── Columna Derecha: Simulador Rápido ─────────────────────────────────── */}
-      <Card className="shadow-lg sticky top-4 bg-gradient-to-br from-white to-primary-50/30 dark:from-card dark:to-primary-950/10">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-primary-600" />
-            Simulador Rápido
-          </CardTitle>
-          <CardDescription>
-            Probá en vivo cómo tus reglas afectan el precio antes de guardar
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
+        {/* Simulador Rápido */}
+        <Card className="shadow-lg bg-gradient-to-br from-white to-primary-50/30 dark:from-card dark:to-primary-950/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calculator className="h-5 w-5 text-primary-600" />
+              Simulador Rápido
+            </CardTitle>
+            <CardDescription>
+              Probá en vivo cómo tus reglas afectan el precio antes de guardar
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
 
           {/* Inputs del simulador */}
           <div className="space-y-3 p-4 bg-muted/40 rounded-lg border border-input">
@@ -473,6 +502,36 @@ export function ConfigManager() {
               </Select>
             </div>
           </div>
+
+          {/* Alerta contextual CATEA */}
+          <AnimatePresence>
+            {simIsModule && !formData.applyCateaModuleRule && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="flex gap-3 p-3 rounded-lg border-l-4 border-yellow-400 bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-600">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-snug">
+                      Estás simulando un cambio de módulo. ¿Querés aplicar la fórmula especial recomendada por CATEA?
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleActivateCatea}
+                      disabled={isUpdating}
+                      className="mt-1.5 text-sm text-yellow-700 dark:text-yellow-400 underline font-semibold hover:text-yellow-800 dark:hover:text-yellow-300 disabled:opacity-50"
+                    >
+                      Activar Regla CATEA
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Badge de fórmula activa */}
           <AnimatePresence mode="wait">
@@ -582,8 +641,9 @@ export function ConfigManager() {
             </div>
           </motion.div>
         </CardContent>
-      </Card>
+        </Card>
 
+      </div>
     </div>
   );
 }
