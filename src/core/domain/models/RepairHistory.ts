@@ -24,6 +24,8 @@ export interface PriceBreakdown {
   marginARS: number;
   finalPriceARS: number;
   finalPriceUSD: number;
+  /** Recargo por «Extra Desarme de Riesgo» CATEA (Apple u otras marcas de alta complejidad) */
+  riskChargeARS: number;
   /** true cuando se aplicó la Regla CATEA (ganancia ≥ mano de obra mínima) */
   usedCateaRule?: boolean;
   /** true cuando se aplicó el cálculo FRP (Desbloqueo de Cuenta Google) */

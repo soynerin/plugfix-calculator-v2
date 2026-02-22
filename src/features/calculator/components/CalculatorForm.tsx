@@ -84,10 +84,11 @@ export function CalculatorForm() {
       isModuleService,
       isFrpService: isFrp,
       frpSecurityMultiplier,
+      ...(selectedBrand ? { brandName: selectedBrand.name } : {}),
     });
 
     setResult(breakdown);
-  }, [formData.modelId, formData.serviceId, formData.partCost, formData.currency, services, calculate, frpSecurityMultiplier]);
+  }, [formData.modelId, formData.serviceId, formData.partCost, formData.currency, formData.brandId, services, brands, calculate, frpSecurityMultiplier]);
 
   const handleSaveToHistory = () => {
     if (!result || !selectedModel || !selectedService || !selectedBrand) {
@@ -519,6 +520,25 @@ export function CalculatorForm() {
                         </span>
                       </motion.div>
                     </>
+                  )}
+                  {/* Recargo de alta complejidad Apple (CATEA) */}
+                  {result.riskChargeARS > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.25 }}
+                      className="flex justify-between items-center py-2 border-t border-dashed border-gray-100 dark:border-gray-800"
+                    >
+                      <span className="flex items-center gap-1.5 text-sm text-orange-600 dark:text-orange-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5 shrink-0">
+                          <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clipRule="evenodd" />
+                        </svg>
+                        Plus Desarme (Alta Complejidad)
+                      </span>
+                      <span className="text-sm font-semibold tabular-nums text-orange-600 dark:text-orange-400">
+                        <AnimatedNumber value={result.riskChargeARS} currency="ARS" />
+                      </span>
+                    </motion.div>
                   )}
                 </div>
 

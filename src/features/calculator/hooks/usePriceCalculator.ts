@@ -18,6 +18,8 @@ export interface SimplifiedCalculationParams {
   isFrpService?: boolean;
   /** Multiplicador por nivel de seguridad para FRP (1=Baja, 2=Media, 3=Alta) */
   frpSecurityMultiplier?: 1 | 2 | 3;
+  /** Nombre de la marca — activa el recargo de «Extra Desarme de Riesgo» para Apple */
+  brandName?: string;
 }
 
 export function usePriceCalculator() {
@@ -37,6 +39,7 @@ export function usePriceCalculator() {
         applyCateaModuleRule: config.applyCateaModuleRule,
         isModuleService: params.isModuleService ?? false,
         isFrpService: params.isFrpService ?? false,
+        ...(params.brandName ? { brandName: params.brandName } : {}),
         ...(params.frpSecurityMultiplier !== undefined ? { frpSecurityMultiplier: params.frpSecurityMultiplier } : {}),
       };
 
@@ -65,6 +68,7 @@ export function usePriceCalculator() {
         applyCateaModuleRule: config.applyCateaModuleRule,
         isModuleService: params.isModuleService ?? false,
         isFrpService: params.isFrpService ?? false,
+        ...(params.brandName ? { brandName: params.brandName } : {}),
         ...(params.frpSecurityMultiplier !== undefined ? { frpSecurityMultiplier: params.frpSecurityMultiplier } : {}),
       };
 

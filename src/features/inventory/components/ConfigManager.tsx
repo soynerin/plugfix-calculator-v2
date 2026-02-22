@@ -84,6 +84,7 @@ export function ConfigManager() {
   const [simPartCost, setSimPartCost] = useState(50);
   const [simCurrency, setSimCurrency] = useState<'USD' | 'ARS'>('USD');
   const [simServiceId, setSimServiceId] = useState('');
+  const [simBrand, setSimBrand] = useState<'generic' | 'apple'>('generic');
 
   // Set default service for simulator when list loads
   useEffect(() => {
@@ -210,10 +211,11 @@ export function ConfigManager() {
       applyCateaModuleRule,
       // Sólo activar la fórmula de módulo si el toggle CATEA está habilitado
       isModuleService: applyCateaModuleRule && simIsModule,
+      ...(simBrand === 'apple' ? { brandName: 'Apple' } : {}),
     });
 
     return { ...result, useCatea };
-  }, [formData, laborCostCurrency, simPartCost, simCurrency, simIsModule, simService]);
+  }, [formData, laborCostCurrency, simPartCost, simCurrency, simIsModule, simService, simBrand]);
 
   if (isLoading) {
     return (
@@ -481,6 +483,23 @@ export function ConfigManager() {
               </div>
             </div>
 
+            {/* Marca de Prueba */}
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Marca de prueba</Label>
+              <Select
+                value={simBrand}
+                onValueChange={v => setSimBrand(v as 'generic' | 'apple')}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="generic">Genérica / Otras</SelectItem>
+                  <SelectItem value="apple">Apple</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Selección de Servicio */}
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">Tipo de servicio</Label>
@@ -568,7 +587,7 @@ export function ConfigManager() {
 
           {/* Desglose animado */}
           <motion.div
-            key={`${JSON.stringify(formData)}-${simPartCost}-${simCurrency}-${simServiceId}`}
+            key={`${JSON.stringify(formData)}-${simPartCost}-${simCurrency}-${simServiceId}-${simBrand}`}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
@@ -618,6 +637,19 @@ export function ConfigManager() {
                     </span>
                   </div>
                 </>
+              )}
+              {/* Recargo por marca de alta complejidad (Apple) */}
+              {simulation.riskChargeARS > 0 && (
+                <div className="flex items-center justify-between py-2 px-3 rounded-lg shadow-sm text-sm border border-orange-200/70 dark:border-orange-800/40 bg-orange-50 dark:bg-orange-950/20">
+                  <span className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    Plus Desarme (Alta Complejidad)
+                  </span>
+                  <span className="flex items-center gap-1 font-semibold tabular-nums text-orange-600 dark:text-orange-400">
+                    <AnimatedNumber value={simulation.riskChargeARS} currency="ARS" />
+                    <AlertTriangle className="h-3 w-3 opacity-70" />
+                  </span>
+                </div>
               )}
             </div>
 

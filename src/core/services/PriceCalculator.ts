@@ -15,6 +15,8 @@ export interface CalculationParams {
   isModuleService: boolean;        // ¿El servicio es cambio de módulo/pantalla?
   isFrpService?: boolean;          // ¿El servicio es FRP / Cuenta Google?
   frpSecurityMultiplier?: 1 | 2 | 3; // Multiplicador por nivel de seguridad FRP
+  /** Nombre de la marca — activa el recargo CATEA de «Extra Desarme de Riesgo» para Apple */
+  brandName?: string;
 }
 
 /**
@@ -28,16 +30,23 @@ export interface CalculationParams {
  *   Si profit > servicioBasePrice → usa precio CATEA
  *   Si profit <= servicioBasePrice → usa servicioBasePrice como M.O.
  */
+/** Recargo «Extra Desarme de Riesgo» CATEA para dispositivos de alta complejidad (Apple). */
+const EXTRA_RIESGO_CATEA = 3500;
+
 export class PriceCalculator {
   static calculate(params: CalculationParams): PriceBreakdown {
     const {
       partCost, currency, usdRate,
       defaultMargin, minimumLaborCost, serviceBasePrice,
-      isModuleService,
+      isModuleService, brandName,
     } = params;
 
     // Precio base efectivo: el del servicio si está definido, sino fallback al global
     const effectiveBasePrice = serviceBasePrice > 0 ? serviceBasePrice : minimumLaborCost;
+
+    // Recargo por marca de alta complejidad (Apple) según recomendación CATEA
+    const isHighRiskBrand = !!(brandName && brandName.toLowerCase().includes('apple'));
+    const riskChargeARS = isHighRiskBrand ? EXTRA_RIESGO_CATEA : 0;
 
     // Normalizar costo del repuesto a ARS
     const rawPartARS = currency === 'USD' ? partCost * usdRate : partCost;
@@ -49,12 +58,13 @@ export class PriceCalculator {
 
       if (gainResultante > effectiveBasePrice) {
         // La ganancia CATEA supera la M.O. base → aplicar Regla CATEA
-        const finalPriceARS = Math.ceil(cateaSuggestedPrice / 1000) * 1000;
+        const finalPriceARS = Math.ceil((cateaSuggestedPrice + riskChargeARS) / 1000) * 1000;
         return {
           partCostARS:    Math.round(rawPartARS),
           laborCostARS:   Math.round(gainResultante),
           riskPremiumARS: 0,
-          subtotalARS:    Math.round(cateaSuggestedPrice),
+          riskChargeARS,
+          subtotalARS:    Math.round(cateaSuggestedPrice + riskChargeARS),
           marginARS:      0,
           finalPriceARS,
           finalPriceUSD:  Math.round((finalPriceARS / usdRate) * 100) / 100,
@@ -63,12 +73,13 @@ export class PriceCalculator {
       }
 
       // Fallback: la ganancia CATEA es insuficiente → cobrar M.O. base del servicio
-      const subtotalFallbackARS = rawPartARS + effectiveBasePrice;
+      const subtotalFallbackARS = rawPartARS + effectiveBasePrice + riskChargeARS;
       const finalPriceFallbackARS = Math.ceil(subtotalFallbackARS / 1000) * 1000;
       return {
         partCostARS:    Math.round(rawPartARS),
         laborCostARS:   Math.round(effectiveBasePrice),
         riskPremiumARS: 0,
+        riskChargeARS,
         subtotalARS:    Math.round(subtotalFallbackARS),
         marginARS:      0,
         finalPriceARS:  finalPriceFallbackARS,
@@ -80,12 +91,13 @@ export class PriceCalculator {
     // --- Fórmula FRP (Desbloqueo de Cuenta Google / Factory Reset Protection) ---
     if (params.isFrpService) {
       const multiplier = params.frpSecurityMultiplier ?? 1;
-      const frpTotal = effectiveBasePrice * multiplier;
+      const frpTotal = effectiveBasePrice * multiplier + riskChargeARS;
       const finalPriceARS = Math.ceil(frpTotal / 1000) * 1000;
       return {
         partCostARS:    0,
-        laborCostARS:   Math.round(frpTotal),
+        laborCostARS:   Math.round(effectiveBasePrice * multiplier),
         riskPremiumARS: 0,
+        riskChargeARS,
         subtotalARS:    Math.round(frpTotal),
         marginARS:      0,
         finalPriceARS,
@@ -99,13 +111,14 @@ export class PriceCalculator {
     const marginARS          = rawPartARS * (defaultMargin / 100);
     const partWithMarginARS  = rawPartARS + marginARS;
     const laborCostARS       = effectiveBasePrice;
-    const subtotalARS        = partWithMarginARS + laborCostARS;
+    const subtotalARS        = partWithMarginARS + laborCostARS + riskChargeARS;
     const finalPriceARS      = Math.ceil(subtotalARS / 1000) * 1000;
 
     return {
       partCostARS:    Math.round(rawPartARS),
       laborCostARS:   Math.round(laborCostARS),
       riskPremiumARS: 0,
+      riskChargeARS,
       subtotalARS:    Math.round(subtotalARS),
       marginARS:      Math.round(marginARS),
       finalPriceARS,
