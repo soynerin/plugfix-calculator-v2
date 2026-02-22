@@ -259,8 +259,8 @@ INSERT INTO services (name, hours, base_price, description) VALUES
   ('Limpieza Virus - Malware',             1.0,  17500, 'Eliminación de software malicioso.'),
   ('Lavado quimico - Equipos Mojados',     2.5,  14000, 'Lavado ultrasónico.'),
   ('Reparación avanzada mediante resoldado...', 3.5, 54486, 'Microelectrónica pesada y reballing.'),
-  ('Restablecimiento de Fábrica y Configuración', 1.0, 27243, 'Wipe data y configuración.')
-ON CONFLICT (name) DO NOTHING;
+  ('Restablecimiento de Fábrica y Configuración', 1.0, 27243, 'Wipe data y configuración.'),
+  ('Cambio de Tapa Trasera',                       2.0, 26600, 'Remoción de cristal trasero (calor/láser) y colocación de tapa nueva.');
 
 -- ============================================
 -- HELPER FUNCTIONS

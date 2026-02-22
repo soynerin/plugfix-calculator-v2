@@ -77,6 +77,7 @@ export function ConfigManager() {
     defaultMargin: String(DEFAULT_CONFIG.defaultMargin),
     minimumLaborCost: String(DEFAULT_CONFIG.minimumLaborCost),
     applyCateaModuleRule: DEFAULT_CONFIG.applyCateaModuleRule,
+    highRiskFeeUsd: String(DEFAULT_CONFIG.highRiskFeeUsd),
   });
 
   const [laborCostCurrency, setLaborCostCurrency] = useState<'ARS' | 'USD'>('ARS');
@@ -101,6 +102,7 @@ export function ConfigManager() {
         defaultMargin:        String(config.defaultMargin),
         minimumLaborCost:     String(config.minimumLaborCost),
         applyCateaModuleRule: config.applyCateaModuleRule,
+        highRiskFeeUsd:       String(config.highRiskFeeUsd),
       });
       // La BD siempre guarda en ARS → resetear la moneda del campo al sincronizar
       setLaborCostCurrency('ARS');
@@ -116,6 +118,7 @@ export function ConfigManager() {
           ? parseFloat(formData.minimumLaborCost) * (parseFloat(formData.usdRate) || 1)
           : parseFloat(formData.minimumLaborCost),
         applyCateaModuleRule: formData.applyCateaModuleRule,
+        highRiskFeeUsd:       parseFloat(formData.highRiskFeeUsd) || DEFAULT_CONFIG.highRiskFeeUsd,
       });
       toast({
         title: '✅ Configuración guardada',
@@ -137,6 +140,7 @@ export function ConfigManager() {
         defaultMargin:        String(config.defaultMargin),
         minimumLaborCost:     String(config.minimumLaborCost),
         applyCateaModuleRule: config.applyCateaModuleRule,
+        highRiskFeeUsd:       String(config.highRiskFeeUsd),
       });
       toast({ title: 'Valores restaurados', description: 'Se han restaurado los últimos valores guardados.' });
     }
@@ -153,6 +157,7 @@ export function ConfigManager() {
           ? parseFloat(updated.minimumLaborCost) * (parseFloat(updated.usdRate) || 1)
           : parseFloat(updated.minimumLaborCost),
         applyCateaModuleRule: true,
+        highRiskFeeUsd: parseFloat(updated.highRiskFeeUsd) || DEFAULT_CONFIG.highRiskFeeUsd,
       });
       toast({
         title: '✅ Regla CATEA activada',
@@ -198,6 +203,7 @@ export function ConfigManager() {
     const minimumLaborCost = laborCostCurrency === 'USD'
       ? minimumLaborCostRaw * usdRate
       : minimumLaborCostRaw;
+    const highRiskFeeUsd   = parseFloat(formData.highRiskFeeUsd) || DEFAULT_CONFIG.highRiskFeeUsd;
     const { applyCateaModuleRule } = formData;
     const useCatea = applyCateaModuleRule && simIsModule;
 
@@ -209,6 +215,7 @@ export function ConfigManager() {
       minimumLaborCost,
       serviceBasePrice: simService?.basePrice ?? 0,
       applyCateaModuleRule,
+      highRiskFeeUsd,
       // Sólo activar la fórmula de módulo si el toggle CATEA está habilitado
       isModuleService: applyCateaModuleRule && simIsModule,
       ...(simBrand === 'apple' ? { brandName: 'Apple' } : {}),
@@ -345,6 +352,36 @@ export function ConfigManager() {
                 {laborCostCurrency === 'USD' && (
                   <span className="ml-1 text-primary-600 dark:text-primary-400 font-medium">
                     ≈ ${Math.round((parseFloat(formData.minimumLaborCost) || 0) * (parseFloat(formData.usdRate) || 1)).toLocaleString('es-AR')} ARS
+                  </span>
+                )}
+              </p>
+            </div>
+
+            {/* Plus Alta Complejidad (USD) */}
+            <div>
+              <Label htmlFor="highRiskFeeUsd" className="text-sm font-medium">
+                Plus Alta Complejidad (USD)
+              </Label>
+              <div className="relative mt-1.5">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                  <DollarSign className="h-4 w-4" />
+                </div>
+                <Input
+                  id="highRiskFeeUsd"
+                  type="number"
+                  step="0.50"
+                  min="0"
+                  value={formData.highRiskFeeUsd}
+                  onChange={e => setFormData(f => ({ ...f, highRiskFeeUsd: e.target.value }))}
+                  className="pl-10 pr-16"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none font-medium">USD</div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Recargo base en dólares para equipos de alto riesgo (Ej: Apple). Se pesificará automáticamente.
+                {parseFloat(formData.highRiskFeeUsd) > 0 && (
+                  <span className="ml-1 text-primary-600 dark:text-primary-400 font-medium">
+                    ≈ ${Math.round((parseFloat(formData.highRiskFeeUsd) || 0) * (parseFloat(formData.usdRate) || 1)).toLocaleString('es-AR')} ARS
                   </span>
                 )}
               </p>

@@ -17,6 +17,11 @@ export interface CalculationParams {
   frpSecurityMultiplier?: 1 | 2 | 3; // Multiplicador por nivel de seguridad FRP
   /** Nombre de la marca — activa el recargo CATEA de «Extra Desarme de Riesgo» para Apple */
   brandName?: string;
+  /**
+   * Recargo «Plus Alta Complejidad» en USD (viene de config.highRiskFeeUsd).
+   * Se convierte a ARS usando usdRate. Por defecto 2.50 USD.
+   */
+  highRiskFeeUsd?: number;
 }
 
 /**
@@ -30,9 +35,6 @@ export interface CalculationParams {
  *   Si profit > servicioBasePrice → usa precio CATEA
  *   Si profit <= servicioBasePrice → usa servicioBasePrice como M.O.
  */
-/** Recargo «Extra Desarme de Riesgo» CATEA para dispositivos de alta complejidad (Apple). */
-const EXTRA_RIESGO_CATEA = 3500;
-
 export class PriceCalculator {
   static calculate(params: CalculationParams): PriceBreakdown {
     const {
@@ -44,9 +46,10 @@ export class PriceCalculator {
     // Precio base efectivo: el del servicio si está definido, sino fallback al global
     const effectiveBasePrice = serviceBasePrice > 0 ? serviceBasePrice : minimumLaborCost;
 
-    // Recargo por marca de alta complejidad (Apple) según recomendación CATEA
+    // Recargo por marca de alta complejidad (Apple) — pesificado dinámicamente desde config
+    const highRiskFeeUsd = params.highRiskFeeUsd ?? 2.50;
     const isHighRiskBrand = !!(brandName && brandName.toLowerCase().includes('apple'));
-    const riskChargeARS = isHighRiskBrand ? EXTRA_RIESGO_CATEA : 0;
+    const riskChargeARS = isHighRiskBrand ? Math.round(highRiskFeeUsd * usdRate) : 0;
 
     // Normalizar costo del repuesto a ARS
     const rawPartARS = currency === 'USD' ? partCost * usdRate : partCost;

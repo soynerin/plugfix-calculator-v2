@@ -39,6 +39,7 @@ export function usePriceCalculator() {
         applyCateaModuleRule: config.applyCateaModuleRule,
         isModuleService: params.isModuleService ?? false,
         isFrpService: params.isFrpService ?? false,
+        highRiskFeeUsd: config.highRiskFeeUsd,
         ...(params.brandName ? { brandName: params.brandName } : {}),
         ...(params.frpSecurityMultiplier !== undefined ? { frpSecurityMultiplier: params.frpSecurityMultiplier } : {}),
       };
@@ -68,6 +69,7 @@ export function usePriceCalculator() {
         applyCateaModuleRule: config.applyCateaModuleRule,
         isModuleService: params.isModuleService ?? false,
         isFrpService: params.isFrpService ?? false,
+        highRiskFeeUsd: config.highRiskFeeUsd,
         ...(params.brandName ? { brandName: params.brandName } : {}),
         ...(params.frpSecurityMultiplier !== undefined ? { frpSecurityMultiplier: params.frpSecurityMultiplier } : {}),
       };

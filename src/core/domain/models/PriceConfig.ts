@@ -5,6 +5,8 @@ export interface PriceConfig {
   defaultMargin: number;          // Margen general sobre repuestos (%)
   minimumLaborCost: number;       // Costo mínimo de mano de obra (ARS)
   applyCateaModuleRule: boolean;  // Regla CATEA para cambios de módulo/pantalla
+  /** Recargo «Plus Alta Complejidad» en USD (se pesifica con usdRate) */
+  highRiskFeeUsd: number;
   updatedAt?: Date;
 }
 
@@ -14,4 +16,5 @@ export const DEFAULT_CONFIG: Omit<PriceConfig, 'id'> = {
   defaultMargin: 80,
   minimumLaborCost: 15000,
   applyCateaModuleRule: true,
+  highRiskFeeUsd: 2.50,
 };

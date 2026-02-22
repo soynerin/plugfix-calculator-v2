@@ -48,6 +48,7 @@ export class SupabaseAdapter implements IDatabaseService {
         default_margin: DEFAULT_CONFIG.defaultMargin,
         minimum_labor_cost: DEFAULT_CONFIG.minimumLaborCost,
         apply_catea_module_rule: DEFAULT_CONFIG.applyCateaModuleRule,
+        high_risk_fee_usd: DEFAULT_CONFIG.highRiskFeeUsd,
       });
     }
   }
@@ -535,6 +536,7 @@ export class SupabaseAdapter implements IDatabaseService {
     if (configData.defaultMargin !== undefined)        updateData.default_margin = configData.defaultMargin;
     if (configData.minimumLaborCost !== undefined)     updateData.minimum_labor_cost = configData.minimumLaborCost;
     if (configData.applyCateaModuleRule !== undefined) updateData.apply_catea_module_rule = configData.applyCateaModuleRule;
+    if (configData.highRiskFeeUsd !== undefined)       updateData.high_risk_fee_usd = configData.highRiskFeeUsd;
 
     const { data, error } = await this.client
       .from('config')
@@ -728,6 +730,7 @@ export class SupabaseAdapter implements IDatabaseService {
         default_margin: DEFAULT_CONFIG.defaultMargin,
         minimum_labor_cost: DEFAULT_CONFIG.minimumLaborCost,
         apply_catea_module_rule: DEFAULT_CONFIG.applyCateaModuleRule,
+        high_risk_fee_usd: DEFAULT_CONFIG.highRiskFeeUsd,
       })
       .eq('user_id', userId);
   }
@@ -801,6 +804,9 @@ export class SupabaseAdapter implements IDatabaseService {
         defaultMargin: backup.data.config.defaultMargin,
         minimumLaborCost: backup.data.config.minimumLaborCost,
         applyCateaModuleRule: backup.data.config.applyCateaModuleRule,
+        ...(backup.data.config.highRiskFeeUsd !== undefined
+          ? { highRiskFeeUsd: backup.data.config.highRiskFeeUsd }
+          : {}),
       });
     }
 
@@ -889,8 +895,9 @@ export class SupabaseAdapter implements IDatabaseService {
       id: data.user_id,
       usdRate:              data.usd_rate,
       defaultMargin:        data.default_margin,
-      minimumLaborCost:     data.minimum_labor_cost     ?? DEFAULT_CONFIG.minimumLaborCost,
-      applyCateaModuleRule: data.apply_catea_module_rule ?? DEFAULT_CONFIG.applyCateaModuleRule,
+      minimumLaborCost:     data.minimum_labor_cost      ?? DEFAULT_CONFIG.minimumLaborCost,
+      applyCateaModuleRule: data.apply_catea_module_rule  ?? DEFAULT_CONFIG.applyCateaModuleRule,
+      highRiskFeeUsd:       data.high_risk_fee_usd        ?? DEFAULT_CONFIG.highRiskFeeUsd,
       ...(data.updated_at && { updatedAt: new Date(data.updated_at) })
     };
   }
