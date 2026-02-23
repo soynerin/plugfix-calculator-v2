@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { usePartTypes } from '../hooks/usePartTypes';
 import { useConfirm } from '@/shared/hooks/useConfirm';
-import { useToast } from '@/shared/hooks/use-toast';
 import type { PartType } from '@/core/domain/models';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -15,30 +14,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
-import { Plus, Trash2, Package, Download, Pencil } from 'lucide-react';
+import { Plus, Trash2, Package, Pencil } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
-
-// ─── Tipos predeterminados ─────────────────────────────────────────────────────
-
-const DEFAULT_PART_TYPES: Omit<PartType, 'id'>[] = [
-  { name: 'Pantalla OLED / AMOLED' },
-  { name: 'Pantalla LCD' },
-  { name: 'Batería' },
-  { name: 'Pin de Carga' },
-  { name: 'Placa Madre / Microelectrónica' },
-  { name: 'Tapa Trasera' },
-  { name: 'Cámara' },
-];
 
 // ─── Componente principal ──────────────────────────────────────────────────────
 
 export function PartTypeManager() {
   const {
-    partTypes, isLoading, isAdding, isImporting, isUpdating,
-    deletingPartTypeId, addPartType, bulkAddPartTypes, updatePartType, deletePartType,
+    partTypes, isLoading, isAdding, isUpdating,
+    deletingPartTypeId, addPartType, updatePartType, deletePartType,
   } = usePartTypes();
   const { confirm } = useConfirm();
-  const { toast } = useToast();
 
   const [formData, setFormData] = useState({ name: '' });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -71,18 +57,6 @@ export function PartTypeManager() {
     updatePartType({ id: selected.id, data: { name: selected.name.trim() } });
     setIsEditModalOpen(false);
     setSelected(null);
-  };
-
-  const handleLoadDefaults = async () => {
-    try {
-      await bulkAddPartTypes(DEFAULT_PART_TYPES);
-      toast({
-        title: '¡Tipos cargados!',
-        description: `Se importaron ${DEFAULT_PART_TYPES.length} tipos de repuesto predeterminados.`,
-      });
-    } catch {
-      toast({ title: 'Error al importar', description: 'No se pudo cargar la plantilla.', variant: 'destructive' });
-    }
   };
 
   if (isLoading) {
@@ -136,23 +110,11 @@ export function PartTypeManager() {
             <Package className="h-8 w-8 text-primary-500 dark:text-primary-400" strokeWidth={1.5} />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            Aún no hay tipos de repuesto configurados
+            No tenés tipos de repuesto configurados
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mb-8">
-            Podés crearlos manualmente con el formulario de arriba, o cargar la plantilla con los tipos más comunes.
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+            Agregá uno nuevo usando el formulario de arriba.
           </p>
-          <Button
-            onClick={handleLoadDefaults}
-            disabled={isImporting}
-            size="lg"
-            className="gap-2 bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isImporting ? (
-              <><Spinner size="sm" /> Importando plantilla...</>
-            ) : (
-              <><Download className="h-5 w-5" /> Cargar Tipos Básicos</>
-            )}
-          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

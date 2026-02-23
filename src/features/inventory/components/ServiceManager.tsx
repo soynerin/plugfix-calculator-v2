@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useServices } from '../hooks/useServices';
 import { useConfirm } from '@/shared/hooks/useConfirm';
-import { useToast } from '@/shared/hooks/use-toast';
 import type { Service } from '@/core/domain/models';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -15,40 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
-import { Plus, Trash2, Wrench, Clock, Download, Pencil } from 'lucide-react';
+import { Plus, Trash2, Wrench, Clock, Pencil } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 
-// ─── Plantilla predeterminada ─────────────────────────────────────────────────
-
-const DEFAULT_SERVICES: Omit<Service, 'id'>[] = [
-  { name: 'Cambio de pin de carga Micro USB - V8', hours: 1.0, basePrice: 24500, description: 'Reemplazo de puerto clásico.' },
-  { name: 'Cambio de pin de carga Micro USB - C',  hours: 1.5, basePrice: 31500, description: 'Reemplazo de puerto Tipo C.' },
-  { name: 'Cambio de Modulo MO (*1)',              hours: 1.5, basePrice: 24500, description: 'Reemplazo de display LCD/OLED.' },
-  { name: 'Cambio de microfono',                  hours: 1.0, basePrice: 24500, description: 'Reemplazo de micrófono.' },
-  { name: 'Cambio de Boton Desarme Simple',        hours: 0.5, basePrice: 14000, description: 'Reemplazo de flex simple.' },
-  { name: 'Flasheo Hard Reset',                   hours: 1.0, basePrice: 10500, description: 'Reinstalación de OS.' },
-  { name: 'FRP (*2)',                             hours: 1.5, basePrice: 17500, description: 'Desbloqueo de cuenta.' },
-  { name: 'Cambio de Componentes SMD No IC',      hours: 1.5, basePrice: 17500, description: 'Reemplazo de capacitores, diodos, etc.' },
-  { name: 'Cambio de IC',                         hours: 2.5, basePrice: 38500, description: 'Reemplazo de circuitos integrados.' },
-  { name: 'Reflow de Componentes de placa Main',  hours: 1.5, basePrice: 17500, description: 'Resoldado por calor.' },
-  { name: 'Cambio de Vidrio No modulo',           hours: 2.5, basePrice: 26600, description: 'Remoción de visor roto y laminado.' },
-  { name: 'Cambio de Camara',                     hours: 1.0, basePrice: 17500, description: 'Reemplazo de módulo de cámara.' },
-  { name: 'Crear cuenta de Google',               hours: 0.5, basePrice: 10500, description: 'Configuración inicial.' },
-  { name: 'Cambio de Bateria',                    hours: 0.5, basePrice: 17500, description: 'Reemplazo de batería.' },
-  { name: 'Diagnostico General',                  hours: 0.5, basePrice: 14000, description: 'Revisión técnica inicial.' },
-  { name: 'Mantenimiento Preventivo: Limpieza',   hours: 1.0, basePrice: 14000, description: 'Limpieza de hardware.' },
-  { name: 'Reparacion de Placa Main',             hours: 3.0, basePrice: 84000, description: 'Reparación a nivel componente.' },
-  { name: 'Reemplazo de Cable Flexible Interno',  hours: 1.0, basePrice: 24500, description: 'Cambio de flex.' },
-  { name: 'Limpieza Virus - Malware',             hours: 1.0, basePrice: 17500, description: 'Eliminación de software malicioso.' },
-  { name: 'Lavado quimico - Equipos Mojados',     hours: 2.5, basePrice: 14000, description: 'Lavado ultrasónico.' },
-  { name: 'Reparación avanzada mediante resoldado...', hours: 3.5, basePrice: 54486, description: 'Microelectrónica pesada y reballing.' },
-  { name: 'Restablecimiento de Fábrica y Configuración', hours: 1.0, basePrice: 27243, description: 'Wipe data y configuración.' },
-];
-
 export function ServiceManager() {
-  const { services, isLoading, isAdding, isImporting, isUpdating, deletingServiceId, addService, bulkImportServices, updateService, deleteService } = useServices();
+  const { services, isLoading, isAdding, isUpdating, deletingServiceId, addService, updateService, deleteService } = useServices();
   const { confirm } = useConfirm();
-  const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     hours: '1',
@@ -112,22 +83,6 @@ export function ServiceManager() {
     updateService({ id: selectedService.id, data: updateData });
     setIsEditModalOpen(false);
     setSelectedService(null);
-  };
-
-  const handleLoadDefaultServices = async () => {
-    try {
-      await bulkImportServices(DEFAULT_SERVICES);
-      toast({
-        title: '¡Plantilla cargada!',
-        description: `Se importaron ${DEFAULT_SERVICES.length} servicios predeterminados correctamente.`,
-      });
-    } catch {
-      toast({
-        title: 'Error al importar',
-        description: 'No se pudo cargar la plantilla. Intenta nuevamente.',
-        variant: 'destructive',
-      });
-    }
   };
 
   const isFormValid = formData.name.trim() && formData.hours && parseFloat(formData.hours) > 0;
@@ -235,29 +190,11 @@ export function ServiceManager() {
             <Wrench className="h-8 w-8 text-primary-500 dark:text-primary-400" strokeWidth={1.5} />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            Aún no tienes servicios configurados
+            No tienes servicios configurados
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mb-8">
-            Puedes crearlos a mano usando el formulario de arriba, o cargar nuestra plantilla profesional con los servicios más comunes.
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+            Agrega uno nuevo usando el formulario de arriba.
           </p>
-          <Button
-            onClick={handleLoadDefaultServices}
-            disabled={isImporting}
-            size="lg"
-            className="gap-2 bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isImporting ? (
-              <>
-                <Spinner size="sm" />
-                Importando plantilla...
-              </>
-            ) : (
-              <>
-                <Download className="h-5 w-5" />
-                Cargar Servicios Predeterminados
-              </>
-            )}
-          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
