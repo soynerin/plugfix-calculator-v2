@@ -18,10 +18,10 @@ interface AdminRouteProps {
  *   {role === 'admin' && <AdminRoute><SomeAdminUI /></AdminRoute>}
  */
 export function AdminRoute({ children, redirectTo = '/' }: AdminRouteProps) {
-  const { role, loading } = useAuth();
+  const { role, loading, roleLoading } = useAuth();
 
-  // Still fetching auth state — render nothing to avoid flash
-  if (loading) return null;
+  // Still fetching auth/role state — render nothing to avoid flash
+  if (loading || roleLoading) return null;
 
   // Not an admin → redirect
   if (role !== 'admin') {

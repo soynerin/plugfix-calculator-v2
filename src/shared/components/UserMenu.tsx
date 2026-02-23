@@ -35,7 +35,7 @@ export function UserMenu() {
       .from('profiles')
       .select('username, full_name, avatar_url')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
       .then(({ data }) => {
         const name =
           data?.full_name ||

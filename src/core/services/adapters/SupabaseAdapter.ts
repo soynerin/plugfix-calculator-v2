@@ -29,27 +29,84 @@ export class SupabaseAdapter implements IDatabaseService {
 
   /**
    * Inicializa la configuración del taller si no existe.
-   * Se llama al arrancar la app para garantizar que el usuario tenga su config.
+   * Se llama al arrancar la app para garantizar que el usuario tenga su config,
+   * servicios y tipos de repuestos (semilla inicial lista CATEA).
    */
   async initialize(): Promise<void> {
     const userId = await this.getCurrentUserId();
 
-    const { data, error } = await this.client
+    // ── 1. Config ────────────────────────────────────────────────────────────
+    const { data: configData, error: configError } = await this.client
       .from('config')
       .select('user_id')
       .eq('user_id', userId)
       .maybeSingle();
 
-    // Si no tiene config, insertamos los valores por defecto
-    if (!error && !data) {
+    if (!configError && !configData) {
       await this.client.from('config').insert({
-        user_id: userId,
-        usd_rate: DEFAULT_CONFIG.usdRate,
-        default_margin: DEFAULT_CONFIG.defaultMargin,
-        minimum_labor_cost: DEFAULT_CONFIG.minimumLaborCost,
+        user_id:               userId,
+        usd_rate:              DEFAULT_CONFIG.usdRate,
+        default_margin:        DEFAULT_CONFIG.defaultMargin,
+        minimum_labor_cost:    DEFAULT_CONFIG.minimumLaborCost,
         apply_catea_module_rule: DEFAULT_CONFIG.applyCateaModuleRule,
-        high_risk_fee_usd: DEFAULT_CONFIG.highRiskFeeUsd,
+        high_risk_fee_usd:     DEFAULT_CONFIG.highRiskFeeUsd,
       });
+    }
+
+    // ── 2. Services (CATEA) ──────────────────────────────────────────────────
+    const { count: servicesCount } = await this.client
+      .from('services')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (!servicesCount || servicesCount === 0) {
+      const defaultServices = [
+        { name: 'Cambio de pin de carga Micro USB - V8',        hours: 1.0, base_price: 24500, description: 'Reemplazo de puerto clásico.' },
+        { name: 'Cambio de pin de carga Micro USB - C',         hours: 1.5, base_price: 31500, description: 'Reemplazo de puerto Tipo C.' },
+        { name: 'Cambio de Modulo MO (*1)',                     hours: 1.5, base_price: 24500, description: 'Reemplazo de display LCD/OLED.' },
+        { name: 'Cambio de microfono',                          hours: 1.0, base_price: 24500, description: 'Reemplazo de micrófono.' },
+        { name: 'Cambio de Boton Desarme Simple',               hours: 0.5, base_price: 14000, description: 'Reemplazo de flex simple.' },
+        { name: 'Flasheo Hard Reset',                           hours: 1.0, base_price: 10500, description: 'Reinstalación de OS.' },
+        { name: 'FRP (*2)',                                     hours: 1.5, base_price: 17500, description: 'Desbloqueo de cuenta.' },
+        { name: 'Cambio de Componentes SMD No IC',              hours: 1.5, base_price: 17500, description: 'Reemplazo de capacitores, diodos, etc.' },
+        { name: 'Cambio de IC',                                 hours: 2.5, base_price: 38500, description: 'Reemplazo de circuitos integrados.' },
+        { name: 'Reflow de Componentes de placa Main',          hours: 1.5, base_price: 17500, description: 'Resoldado por calor.' },
+        { name: 'Cambio de Vidrio No modulo',                   hours: 2.5, base_price: 26600, description: 'Remoción de visor roto y laminado.' },
+        { name: 'Cambio de Camara',                             hours: 1.0, base_price: 17500, description: 'Reemplazo de módulo de cámara.' },
+        { name: 'Crear cuenta de Google',                       hours: 0.5, base_price: 10500, description: 'Configuración inicial.' },
+        { name: 'Cambio de Bateria',                            hours: 0.5, base_price: 17500, description: 'Reemplazo de batería.' },
+        { name: 'Diagnostico General',                          hours: 0.5, base_price: 14000, description: 'Revisión técnica inicial.' },
+        { name: 'Mantenimiento Preventivo: Limpieza',           hours: 1.0, base_price: 14000, description: 'Limpieza de hardware.' },
+        { name: 'Reparacion de Placa Main',                     hours: 3.0, base_price: 84000, description: 'Reparación a nivel componente.' },
+        { name: 'Reemplazo de Cable Flexible Interno',          hours: 1.0, base_price: 24500, description: 'Cambio de flex.' },
+        { name: 'Limpieza Virus - Malware',                     hours: 1.0, base_price: 17500, description: 'Eliminación de software malicioso.' },
+        { name: 'Lavado quimico - Equipos Mojados',             hours: 2.5, base_price: 14000, description: 'Lavado ultrasónico.' },
+        { name: 'Reparación avanzada mediante resoldado',       hours: 3.5, base_price: 54486, description: 'Microelectrónica pesada y reballing.' },
+        { name: 'Restablecimiento de Fábrica y Configuración', hours: 1.0, base_price: 27243, description: 'Wipe data y configuración.' },
+        { name: 'Cambio de Tapa Trasera',                       hours: 2.0, base_price: 26600, description: 'Remoción de cristal trasero (calor/láser) y colocación de tapa nueva.' },
+      ].map(s => ({ ...s, user_id: userId }));
+
+      await this.client.from('services').upsert(defaultServices, { onConflict: 'user_id,name', ignoreDuplicates: true });
+    }
+
+    // ── 3. Part types ────────────────────────────────────────────────────────
+    const { count: partTypesCount } = await this.client
+      .from('part_types')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (!partTypesCount || partTypesCount === 0) {
+      const defaultPartTypes = [
+        'Pantalla OLED / AMOLED',
+        'Pantalla LCD',
+        'Batería',
+        'Pin de Carga',
+        'Placa Madre / Microelectrónica',
+        'Tapa Trasera',
+        'Cámara',
+      ].map(name => ({ user_id: userId, name }));
+
+      await this.client.from('part_types').upsert(defaultPartTypes, { onConflict: 'user_id,name', ignoreDuplicates: true });
     }
   }
 

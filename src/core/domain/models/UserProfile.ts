@@ -13,6 +13,8 @@ export interface UserProfile {
   username: string | null;
   full_name: string | null;
   avatar_url: string | null;
+  email: string | null;
+  role: 'admin' | 'tecnico';
   updated_at: string; // ISO timestamp
   created_at: string; // ISO timestamp
 }
@@ -26,6 +28,8 @@ export interface ProfileInsert {
   username?: string | null;
   full_name?: string | null;
   avatar_url?: string | null;
+  email?: string | null;
+  role?: 'admin' | 'tecnico';
 }
 
 /**
@@ -36,6 +40,7 @@ export interface ProfileUpdate {
   username?: string | null;
   full_name?: string | null;
   avatar_url?: string | null;
+  email?: string | null;
 }
 
 /**
