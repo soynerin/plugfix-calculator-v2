@@ -75,7 +75,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
    */
   const ensureProfileOrPurge = useCallback(async (authUser: User): Promise<boolean> => {
     const supabase = getSupabaseClient();
-    const meta = authUser.raw_user_meta_data ?? authUser.user_metadata ?? {};
+    const meta = authUser.user_metadata ?? {};
 
     const fullName: string =
       meta.full_name || meta.name || meta.display_name ||
