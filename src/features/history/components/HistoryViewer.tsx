@@ -752,7 +752,7 @@ export function HistoryViewer() {
                             service: selectedEntry.service,
                             partCost: selectedEntry.partCost,
                             currency: selectedEntry.currency,
-                            supplier: selectedEntry.supplier,
+                            ...(selectedEntry.supplier !== undefined ? { supplier: selectedEntry.supplier } : {}),
                             breakdown: selectedEntry.breakdown,
                           },
                         ];

@@ -152,6 +152,7 @@ export const CalculatorForm = forwardRef<CalculatorFormHandle, CalculatorFormPro
 
     // Use the first repair's scalar values for filter-compatible columns
     const first = repairsWithResult[0];
+    if (!first) return;
 
     const entry: Omit<RepairHistory, 'id'> = {
       brand: first.brand!.name,

@@ -59,7 +59,7 @@ export function ConfirmProvider({ children }: ConfirmProviderProps) {
           title={confirmOptions.title}
           description={confirmOptions.message}
           type={confirmOptions.type || 'danger'}
-          confirmText={confirmOptions.confirmText}
+          {...(confirmOptions.confirmText !== undefined ? { confirmText: confirmOptions.confirmText } : {})}
         />
       )}
     </ConfirmContext.Provider>
