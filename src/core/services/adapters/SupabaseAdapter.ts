@@ -655,6 +655,7 @@ export class SupabaseAdapter implements IDatabaseService {
         notes: entry.notes || null,
         status: entry.status || 'pendiente',
         supplier: entry.supplier || null,
+        repair_details: entry.repairDetails ? JSON.stringify(entry.repairDetails) : null,
       })
       .select()
       .single();
@@ -963,9 +964,9 @@ export class SupabaseAdapter implements IDatabaseService {
     return {
       id: data.id,
       ...(data.client_name && { clientName: data.client_name }),
-      brand: data.brand,
-      model: data.model,
-      service: data.service,
+      brand: data.brand ?? '',
+      model: data.model ?? '',
+      service: data.service ?? '',
       partCost: data.part_cost,
       currency: data.currency as 'ARS' | 'USD',
       finalPrice: data.final_price,
@@ -974,6 +975,11 @@ export class SupabaseAdapter implements IDatabaseService {
       ...(data.notes && { notes: data.notes }),
       status: (data.status as 'pendiente' | 'aprobado' | 'entregado') || 'pendiente',
       ...(data.supplier && { supplier: data.supplier }),
+      ...(data.repair_details && {
+        repairDetails: Array.isArray(data.repair_details)
+          ? data.repair_details
+          : JSON.parse(data.repair_details),
+      }),
     };
   }
 }

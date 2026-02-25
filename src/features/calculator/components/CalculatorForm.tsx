@@ -18,7 +18,7 @@ import { formatARS } from '@/shared/utils/formatters';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { SmartResultBar } from '@/shared/components/SmartResultBar';
 import { RepairGroupInput } from './RepairGroupInput';
-import type { RepairHistory } from '@/core/domain/models';
+import type { RepairHistory, RepairDetail } from '@/core/domain/models';
 import type { RepairGroup } from '../types';
 
 const makeEmptyRepair = (): RepairGroup => ({
@@ -119,29 +119,43 @@ export function CalculatorForm() {
   const handleSaveToHistory = () => {
     if (repairsWithResult.length === 0) return;
 
-    for (const r of repairsWithResult) {
-      const entry: Omit<RepairHistory, 'id'> = {
-        brand: r.brand!.name,
-        model: r.model!.name,
-        service: r.service!.name,
-        partCost: parseFloat(r.repair.partCost) || 0,
-        currency: r.repair.currency,
-        finalPrice: r.breakdown!.finalPriceARS,
-        breakdown: r.breakdown!,
-        date: new Date(),
-        status: 'pendiente',
-        ...(clientName.trim() ? { clientName: clientName.trim() } : {}),
-        ...(diagnosis.trim() ? { notes: diagnosis.trim() } : {}),
-        ...(r.repair.supplier.trim() ? { supplier: r.repair.supplier.trim() } : {}),
-      };
-      addHistory(entry);
-    }
+    // Build the repair_details array (full detail per repair)
+    const repairDetails: RepairDetail[] = repairsWithResult.map((r) => ({
+      brand: r.brand!.name,
+      model: r.model!.name,
+      service: r.service!.name,
+      partCost: parseFloat(r.repair.partCost) || 0,
+      currency: r.repair.currency,
+      ...(r.repair.supplier.trim() ? { supplier: r.repair.supplier.trim() } : {}),
+      breakdown: r.breakdown!,
+    }));
+
+    // Use the first repair's scalar values for filter-compatible columns
+    const first = repairsWithResult[0];
+
+    const entry: Omit<RepairHistory, 'id'> = {
+      brand: first.brand!.name,
+      model: first.model!.name,
+      service: first.service!.name,
+      partCost: parseFloat(first.repair.partCost) || 0,
+      currency: first.repair.currency,
+      finalPrice: grandTotalARS,
+      breakdown: first.breakdown!,
+      date: new Date(),
+      status: 'pendiente',
+      repairDetails,
+      ...(clientName.trim() ? { clientName: clientName.trim() } : {}),
+      ...(diagnosis.trim() ? { notes: diagnosis.trim() } : {}),
+      ...(first.repair.supplier.trim() ? { supplier: first.repair.supplier.trim() } : {}),
+    };
+
+    addHistory(entry);
 
     toast({
       title: 'Guardado exitosamente',
       description:
         repairsWithResult.length > 1
-          ? `${repairsWithResult.length} reparaciones guardadas en el historial`
+          ? `Ticket con ${repairsWithResult.length} reparaciones guardado en el historial`
           : 'El cálculo se guardó en el historial',
     });
 

@@ -35,7 +35,7 @@ import {
 } from '@/shared/ui/dialog';
 import { formatARS, formatUSD } from '@/shared/utils/formatters';
 import type { HistoryFilters } from '@/core/services';
-import type { RepairHistory, RepairStatus } from '@/core/domain/models';
+import type { RepairHistory, RepairDetail, RepairStatus } from '@/core/domain/models';
 
 // ── Status Badge ──────────────────────────────────────────────
 const STATUS_CONFIG: Record<RepairStatus, { label: string; className: string }> = {
@@ -231,8 +231,24 @@ export function HistoryViewer() {
 
   const handleWhatsAppShareEntry = (entry: RepairHistory) => {
     const saludo = entry.clientName?.trim() ? `Hola ${entry.clientName.trim()},` : 'Hola!';
-    const diagnosticoTexto = entry.notes?.trim() ? `\nDiagnostico: ${entry.notes.trim()}` : '';
-    const mensaje = `${saludo}\nTe comparto el presupuesto detallado para tu reparacion:\n\nEquipo: ${entry.brand} ${entry.model}\nServicio: ${entry.service}${diagnosticoTexto}\n\n*Total: ${formatARS(entry.finalPrice)}*\n*Presupuesto valido por 15 dias.*\n\nQuedo a tu disposicion por cualquier consulta. Saludos!`;
+    const diagnosticoTexto = entry.notes?.trim() ? `\nDiagnóstico: ${entry.notes.trim()}` : '';
+
+    const details: RepairDetail[] = entry.repairDetails && entry.repairDetails.length > 0
+      ? entry.repairDetails
+      : [{ brand: entry.brand, model: entry.model, service: entry.service, partCost: entry.partCost, currency: entry.currency, breakdown: entry.breakdown }];
+
+    const isSingle = details.length === 1;
+    const repairLines = details
+      .map((d, i) => {
+        const precio = formatARS(d.breakdown.finalPriceARS);
+        return isSingle
+          ? `Equipo: ${d.brand} ${d.model}\nServicio: ${d.service}\n*Total: ${precio}*`
+          : `${i + 1}. ${d.brand} ${d.model} — ${d.service}: *${precio}*`;
+      })
+      .join('\n');
+    const totalLine = details.length > 1 ? `\n\n*Gran Total: ${formatARS(entry.finalPrice)}*` : '';
+
+    const mensaje = `${saludo}\nTe comparto el presupuesto para tu reparación:${diagnosticoTexto}\n\n${repairLines}${totalLine}\n\n*Presupuesto válido por 15 días.*\n\nQuedo a tu disposición por cualquier consulta. Saludos!`;
     window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank', 'noopener,noreferrer');
   };
 
@@ -450,11 +466,19 @@ export function HistoryViewer() {
                         className="px-4 pb-4 space-y-2 cursor-pointer"
                         onClick={() => setSelectedEntry(entry)}
                       >
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                          {entry.model}
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 flex-wrap">
+                          {entry.repairDetails?.[0]?.model ?? entry.model}
+                          {(entry.repairDetails?.length ?? 0) > 1 && (
+                            <span className="text-xs font-semibold bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 px-1.5 py-0.5 rounded-full">
+                              +{entry.repairDetails!.length - 1} equipo{entry.repairDetails!.length - 1 > 1 ? 's' : ''}
+                            </span>
+                          )}
                         </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {entry.service}
+                          {entry.repairDetails?.[0]?.service ?? entry.service}
+                          {(entry.repairDetails?.length ?? 0) > 1 && (
+                            <span className="ml-1 text-xs text-muted-foreground">(+{entry.repairDetails!.length - 1} servicio{entry.repairDetails!.length - 1 > 1 ? 's' : ''})</span>
+                          )}
                         </p>
                         {entry.clientName && (
                           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
@@ -550,9 +574,29 @@ export function HistoryViewer() {
                           >
                             <TableCell className="font-medium text-sm py-4">{formatDate(entry.date)}</TableCell>
                             <TableCell className="text-sm py-4">{entry.clientName || '—'}</TableCell>
-                            <TableCell className="text-sm py-4">{entry.brand}</TableCell>
-                            <TableCell className="text-sm py-4">{entry.model}</TableCell>
-                            <TableCell className="text-sm py-4">{entry.service}</TableCell>
+                            <TableCell className="text-sm py-4">
+                              {entry.repairDetails?.[0]?.brand ?? entry.brand}
+                            </TableCell>
+                            <TableCell className="text-sm py-4">
+                              <span className="flex items-center gap-1.5">
+                                {entry.repairDetails?.[0]?.model ?? entry.model}
+                                {(entry.repairDetails?.length ?? 0) > 1 && (
+                                  <span className="text-xs font-semibold bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                                    +{entry.repairDetails!.length - 1}
+                                  </span>
+                                )}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-sm py-4">
+                              <span className="flex items-center gap-1.5">
+                                {entry.repairDetails?.[0]?.service ?? entry.service}
+                                {(entry.repairDetails?.length ?? 0) > 1 && (
+                                  <span className="text-xs font-semibold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                                    +{entry.repairDetails!.length - 1}
+                                  </span>
+                                )}
+                              </span>
+                            </TableCell>
                             <TableCell className="text-sm text-right py-4">
                               {entry.currency === 'USD'
                                 ? formatUSD(entry.partCost)
@@ -696,79 +740,94 @@ export function HistoryViewer() {
                   </div>
                 )}
 
-                {/* Device Info */}
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Marca</p>
-                    <p className="font-medium">{selectedEntry.brand}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Modelo</p>
-                    <p className="font-medium">{selectedEntry.model}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Servicio</p>
-                    <p className="font-medium">{selectedEntry.service}</p>
-                  </div>
-                </div>
+                {/* Per-repair sub-cards */}
+                {(() => {
+                  const details: RepairDetail[] =
+                    selectedEntry.repairDetails && selectedEntry.repairDetails.length > 0
+                      ? selectedEntry.repairDetails
+                      : [
+                          {
+                            brand: selectedEntry.brand,
+                            model: selectedEntry.model,
+                            service: selectedEntry.service,
+                            partCost: selectedEntry.partCost,
+                            currency: selectedEntry.currency,
+                            supplier: selectedEntry.supplier,
+                            breakdown: selectedEntry.breakdown,
+                          },
+                        ];
+                  return (
+                    <div className="space-y-3">
+                      {details.map((detail, idx) => (
+                        <div
+                          key={idx}
+                          className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+                        >
+                          {/* Sub-card header */}
+                          <div className="flex items-center justify-between px-4 py-2.5 bg-teal-50 dark:bg-teal-950/30 border-b border-teal-100 dark:border-teal-900/50">
+                            <div>
+                              <p className="text-sm font-bold text-teal-700 dark:text-teal-300">
+                                {detail.brand} {detail.model}
+                              </p>
+                              <p className="text-xs text-teal-600 dark:text-teal-400">{detail.service}</p>
+                            </div>
+                            <p className="text-sm font-bold tabular-nums text-teal-700 dark:text-teal-300">
+                              {formatARS(detail.breakdown.finalPriceARS)}
+                            </p>
+                          </div>
 
-                {/* Precio Final */}
-                <div className="text-center p-6 bg-primary/5 rounded-lg border-2 border-primary">
-                  <p className="text-sm text-muted-foreground mb-1">Precio Cobrado</p>
-                  <p className="text-4xl font-bold text-primary">
+                          {/* Sub-card body */}
+                          <div className="px-4 py-3 space-y-1.5 text-sm">
+                            {detail.breakdown.usedFrpRule ? (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Desbloqueo FRP</span>
+                                <span className="font-medium">{formatARS(detail.breakdown.finalPriceARS)}</span>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    Repuesto{detail.currency === 'USD' ? ` (${formatUSD(detail.partCost)})` : ''}
+                                  </span>
+                                  <span>{formatARS(detail.breakdown.partCostARS)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    {detail.breakdown.usedCateaRule ? 'Labor CATEA (×2 + 10%)' : 'Mano de Obra'}
+                                  </span>
+                                  <span>{formatARS(detail.breakdown.laborCostARS)}</span>
+                                </div>
+                              </>
+                            )}
+                            {detail.breakdown.riskChargeARS > 0 && (
+                              <div className="flex justify-between text-orange-600 dark:text-orange-400">
+                                <span>Plus Desarme (Alta Complejidad)</span>
+                                <span className="font-medium">{formatARS(detail.breakdown.riskChargeARS)}</span>
+                              </div>
+                            )}
+                            {detail.supplier && (
+                              <p className="text-xs text-muted-foreground pt-1">
+                                Proveedor: {detail.supplier}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {/* Grand Total */}
+                <div className="text-center p-5 bg-teal-50 dark:bg-teal-950/30 rounded-xl border border-teal-200 dark:border-teal-800">
+                  <p className="text-xs uppercase tracking-widest text-teal-600 dark:text-teal-400 font-semibold mb-1">
+                    {(selectedEntry.repairDetails?.length ?? 0) > 1 ? 'Gran Total Cobrado' : 'Total Cobrado'}
+                  </p>
+                  <p className="text-4xl font-bold text-teal-700 dark:text-teal-300">
                     {formatARS(selectedEntry.finalPrice)}
                   </p>
-                  <p className="text-lg text-muted-foreground mt-1">
+                  <p className="text-sm text-teal-500 mt-1">
                     ≈ {formatUSD(selectedEntry.breakdown.finalPriceUSD)}
                   </p>
-                </div>
-
-                {/* Desglose */}
-                <div className="space-y-3 text-sm">
-                  <h3 className="font-semibold">Desglose del Cálculo:</h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Costo Repuesto:</span>
-                      <div className="text-right">
-                        <span>
-                          {selectedEntry.currency === 'USD'
-                            ? formatUSD(selectedEntry.partCost)
-                            : formatARS(selectedEntry.partCost)}
-                        </span>
-                        {selectedEntry.supplier && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Prov: {selectedEntry.supplier}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Costo con Margen:</span>
-                      <span className="font-medium">{formatARS(selectedEntry.breakdown.partCostARS)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Mano de Obra:</span>
-                      <span className="font-medium">{formatARS(selectedEntry.breakdown.laborCostARS)}</span>
-                    </div>
-                    {selectedEntry.breakdown.riskPremiumARS > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Prima de Riesgo:</span>
-                        <span className="font-medium">{formatARS(selectedEntry.breakdown.riskPremiumARS)}</span>
-                      </div>
-                    )}
-                    <div className="pt-2 border-t flex justify-between">
-                      <span className="text-muted-foreground">Subtotal:</span>
-                      <span className="font-medium">{formatARS(selectedEntry.breakdown.subtotalARS)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Margen Aplicado:</span>
-                      <span className="font-medium">{formatARS(selectedEntry.breakdown.marginARS)}</span>
-                    </div>
-                    <div className="pt-2 border-t flex justify-between font-bold text-base">
-                      <span>Total (redondeado):</span>
-                      <span>{formatARS(selectedEntry.breakdown.finalPriceARS)}</span>
-                    </div>
-                  </div>
                 </div>
 
                 {/* Estado de la Orden */}
