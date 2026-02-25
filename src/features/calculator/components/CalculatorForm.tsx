@@ -220,17 +220,6 @@ export function CalculatorForm() {
           </CardHeader>
 
           <CardContent className="space-y-4">
-            {/* Client name (shared across all repairs) */}
-            <div>
-              <Label>Cliente (opcional)</Label>
-              <Input
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Nombre del cliente"
-                className="min-h-[44px]"
-              />
-            </div>
-
             {/* Repair groups */}
             <div>
               {repairs.map((repair, index) => (
@@ -258,21 +247,39 @@ export function CalculatorForm() {
               Agregar otra reparación
             </Button>
 
-            {/* Shared diagnosis */}
-            <div>
-              <Label htmlFor="diagnosis">
-                Diagnóstico / Falla detectada{' '}
-                <span className="text-muted-foreground font-normal">(Opcional)</span>
-              </Label>
-              <textarea
-                id="diagnosis"
-                rows={2}
-                maxLength={200}
-                value={diagnosis}
-                onChange={(e) => setDiagnosis(e.target.value)}
-                placeholder="Ej: Pantalla rota, no enciende, pin de carga flojo..."
-                className="mt-1.5 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors"
-              />
+            {/* ── Cierre de Ticket ── */}
+            <div className="mt-6 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 p-4 space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Cierre de Ticket
+              </p>
+
+              {/* Client name */}
+              <div>
+                <Label>Cliente <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
+                <Input
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  placeholder="Nombre del cliente"
+                  className="min-h-[44px] mt-1.5"
+                />
+              </div>
+
+              {/* Diagnosis */}
+              <div>
+                <Label htmlFor="diagnosis">
+                  Diagnóstico / Falla detectada{' '}
+                  <span className="text-muted-foreground font-normal">(Opcional)</span>
+                </Label>
+                <textarea
+                  id="diagnosis"
+                  rows={2}
+                  maxLength={200}
+                  value={diagnosis}
+                  onChange={(e) => setDiagnosis(e.target.value)}
+                  placeholder="Ej: Pantalla rota, no enciende, pin de carga flojo..."
+                  className="mt-1.5 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

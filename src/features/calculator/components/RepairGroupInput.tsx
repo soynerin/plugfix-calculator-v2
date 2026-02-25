@@ -89,10 +89,10 @@ export function RepairGroupInput({
         </div>
       </div>
 
-      {/* Row 2: Servicio | Costo + Proveedor */}
+      {/* Row 2: Servicio | Costo Repuesto */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-        {/* Left: Service search */}
-        <div>
+        {/* Service — spans both cols when FRP (no cost field shown) */}
+        <div className={isFrp ? 'md:col-span-2' : ''}>
           <Label>Servicio *</Label>
           <div className="mt-1.5">
             <SearchCombobox
@@ -104,73 +104,67 @@ export function RepairGroupInput({
           </div>
         </div>
 
-        {/* Right: Part cost + supplier stacked */}
-        <div className="flex flex-col gap-2">
-          {/* Cost (hidden for FRP) */}
-          {!isFrp ? (
-            <div>
-              <Label>
-                Costo Repuesto{' '}
-                <span className="text-muted-foreground font-normal text-xs">(Opc.)</span>
-              </Label>
-              <div className="flex gap-2 mt-1.5">
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  value={repair.partCost}
-                  onChange={(e) => onUpdate(repair.id, 'partCost', e.target.value)}
-                  placeholder="0.00"
-                  className="rounded-r-none border-r-0 min-h-[44px]"
-                />
-                <Select
-                  value={repair.currency}
-                  onValueChange={(v: 'ARS' | 'USD') => onUpdate(repair.id, 'currency', v)}
-                >
-                  <SelectTrigger className="w-24 rounded-l-none min-h-[44px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="ARS">ARS</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <AnimatePresence>
-                {showUSDWarning && (
-                  <motion.p
-                    key="usd-warn"
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.18 }}
-                    className="flex items-center gap-1.5 mt-1.5 text-xs text-red-500 dark:text-red-400"
-                  >
-                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                    ¿Estás seguro de que el repuesto está en Dólares? El valor parece muy alto.
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </div>
-          ) : (
-            /* Placeholder spacer so the supplier input stays at the same level */
-            <div />
-          )}
-
-          {/* Supplier */}
+        {/* Costo Repuesto (hidden for FRP) */}
+        {!isFrp && (
           <div>
             <Label>
-              Proveedor{' '}
+              Costo Repuesto{' '}
               <span className="text-muted-foreground font-normal text-xs">(Opc.)</span>
             </Label>
-            <Input
-              value={repair.supplier}
-              onChange={(e) => onUpdate(repair.id, 'supplier', e.target.value)}
-              placeholder="Ej: CellCenter, MercadoLibre..."
-              className="min-h-[44px] mt-1.5"
-            />
+            <div className="flex gap-2 mt-1.5">
+              <Input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                value={repair.partCost}
+                onChange={(e) => onUpdate(repair.id, 'partCost', e.target.value)}
+                placeholder="0.00"
+                className="rounded-r-none border-r-0 min-h-[44px]"
+              />
+              <Select
+                value={repair.currency}
+                onValueChange={(v: 'ARS' | 'USD') => onUpdate(repair.id, 'currency', v)}
+              >
+                <SelectTrigger className="w-24 rounded-l-none min-h-[44px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="ARS">ARS</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <AnimatePresence>
+              {showUSDWarning && (
+                <motion.p
+                  key="usd-warn"
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.18 }}
+                  className="flex items-center gap-1.5 mt-1.5 text-xs text-red-500 dark:text-red-400"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  ¿Estás seguro de que el repuesto está en Dólares? El valor parece muy alto.
+                </motion.p>
+              )}
+            </AnimatePresence>
           </div>
-        </div>
+        )}
+      </div>
+
+      {/* Row 3: Proveedor — full width */}
+      <div className="mb-3">
+        <Label>
+          Proveedor{' '}
+          <span className="text-muted-foreground font-normal text-xs">(Opc.)</span>
+        </Label>
+        <Input
+          value={repair.supplier}
+          onChange={(e) => onUpdate(repair.id, 'supplier', e.target.value)}
+          placeholder="Ej: CellCenter, MercadoLibre..."
+          className="min-h-[44px] mt-1.5"
+        />
       </div>
 
       {/* FRP Security Level (full width, shown only when FRP service selected) */}
