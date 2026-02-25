@@ -1,10 +1,39 @@
 -- ============================================
 -- PlugFix Calculator - Supabase Schema
--- Version: 1.0
+-- Version: 2.0
 -- ============================================
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ============================================
+-- PROFILES TABLE (Auth & Role Management)
+-- ============================================
+-- Phase 1: User roles management.
+-- Each authenticated user gets exactly one profile row, created automatically
+-- via the handle_new_user trigger defined in the TRIGGERS section.
+--
+-- To promote a user to admin, run in Supabase SQL Editor:
+--   UPDATE profiles SET role = 'admin' WHERE id = '<user_uuid>';
+CREATE TABLE profiles (
+  id          UUID NOT NULL,
+  username    TEXT NULL,
+  full_name   TEXT NULL,
+  avatar_url  TEXT NULL,
+  email       TEXT NULL,
+  role        TEXT NOT NULL DEFAULT 'tecnico'
+                CONSTRAINT profiles_role_check
+                  CHECK (role = ANY (ARRAY['admin', 'tecnico'])),
+  updated_at  TIMESTAMPTZ DEFAULT NOW(),
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT profiles_pkey         PRIMARY KEY (id),
+  CONSTRAINT profiles_username_key UNIQUE (username),
+  CONSTRAINT profiles_id_fkey      FOREIGN KEY (id)
+    REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_profiles_username ON profiles(username);
+CREATE INDEX IF NOT EXISTS idx_profiles_role     ON profiles(id, role);
 
 -- ============================================
 -- BRANDS TABLE
@@ -103,6 +132,24 @@ CREATE INDEX idx_history_service ON history(service);
 CREATE INDEX idx_history_brand_model ON history(brand, model);
 
 -- ============================================
+-- SUPPLIER_PRICES TABLE
+-- ============================================
+-- Phase 2: Tracks part prices from external suppliers.
+-- Only admins can write; any authenticated user can read.
+CREATE TABLE supplier_prices (
+  id           UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  provider     VARCHAR(255) NOT NULL,
+  part_name    VARCHAR(255) NOT NULL,
+  price        NUMERIC      NOT NULL CHECK (price >= 0),
+  currency     VARCHAR(3)   NOT NULL DEFAULT 'ARS' CHECK (currency IN ('ARS', 'USD')),
+  last_updated TIMESTAMPTZ  DEFAULT NOW()
+);
+
+CREATE INDEX idx_supplier_prices_provider     ON supplier_prices(provider);
+CREATE INDEX idx_supplier_prices_part_name    ON supplier_prices(part_name);
+CREATE INDEX idx_supplier_prices_last_updated ON supplier_prices(last_updated DESC);
+
+-- ============================================
 -- TRIGGERS FOR AUTO-UPDATE TIMESTAMPS
 -- ============================================
 
@@ -139,16 +186,62 @@ CREATE TRIGGER update_config_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+-- Apply trigger to profiles
+CREATE TRIGGER update_profiles_updated_at
+  BEFORE UPDATE ON profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Function to update last_updated timestamp (used by supplier_prices)
+CREATE OR REPLACE FUNCTION update_last_updated_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.last_updated = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Apply last_updated trigger to supplier_prices
+CREATE TRIGGER update_supplier_prices_last_updated
+  BEFORE UPDATE ON supplier_prices
+  FOR EACH ROW
+  EXECUTE FUNCTION update_last_updated_column();
+
+-- Function to auto-create a profile row when a user signs up
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO profiles (id, email, full_name, avatar_url, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data ->> 'full_name', ''),
+    COALESCE(NEW.raw_user_meta_data ->> 'avatar_url', ''),
+    'tecnico'
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger: automatically create a profile row upon auth.users INSERT
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION handle_new_user();
+
 -- ============================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- ============================================
 
 -- Enable RLS on all tables
-ALTER TABLE brands ENABLE ROW LEVEL SECURITY;
-ALTER TABLE models ENABLE ROW LEVEL SECURITY;
-ALTER TABLE services ENABLE ROW LEVEL SECURITY;
-ALTER TABLE config ENABLE ROW LEVEL SECURITY;
-ALTER TABLE history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE brands           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE models           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE services         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE config           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE history          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE supplier_prices  ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Allow public read access (for now, adjust for auth later)
 -- Brands
@@ -223,6 +316,62 @@ CREATE POLICY "Allow public insert on history"
 CREATE POLICY "Allow public delete on history"
   ON history FOR DELETE
   USING (true);
+
+-- Profiles
+-- Users can read and edit only their own profile row.
+-- The admin check in other policies works because it queries
+-- profiles WHERE id = auth.uid(), which always matches this policy.
+CREATE POLICY "Users can view own profile"
+  ON profiles FOR SELECT
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert own profile"
+  ON profiles FOR INSERT
+  WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile"
+  ON profiles FOR UPDATE
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+
+-- Supplier Prices
+-- Any authenticated user can read. Only admins can write.
+CREATE POLICY "Allow authenticated read on supplier_prices"
+  ON supplier_prices FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow admin insert on supplier_prices"
+  ON supplier_prices FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+CREATE POLICY "Allow admin update on supplier_prices"
+  ON supplier_prices FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+CREATE POLICY "Allow admin delete on supplier_prices"
+  ON supplier_prices FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
 
 -- ============================================
 -- SEED DATA
@@ -333,6 +482,69 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================
+-- STORAGE BUCKET: price_lists
+-- ============================================
+-- Phase 3: Private bucket for supplier price list files (PDF, Excel, CSV).
+-- Only admins can upload/delete; any authenticated user can download.
+--
+-- Run this block in the Supabase SQL Editor (Storage schema must be enabled).
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'price_lists',
+  'price_lists',
+  false,       -- private bucket
+  52428800,    -- 50 MB per file
+  ARRAY[
+    'application/pdf',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/csv'
+  ]
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Only admins can upload files into price_lists
+CREATE POLICY "Allow admin upload to price_lists"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'price_lists'
+    AND EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- Only admins can overwrite/rename files in price_lists
+CREATE POLICY "Allow admin update in price_lists"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'price_lists'
+    AND EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- Only admins can delete files from price_lists
+CREATE POLICY "Allow admin delete from price_lists"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'price_lists'
+    AND EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- Any authenticated user can read/download files from price_lists
+CREATE POLICY "Allow authenticated read from price_lists"
+  ON storage.objects FOR SELECT
+  USING (
+    bucket_id = 'price_lists'
+    AND auth.role() = 'authenticated'
+  );
+
+-- ============================================
 -- VIEWS (for easier querying)
 -- ============================================
 
@@ -368,7 +580,14 @@ ORDER BY h.date DESC;
 -- NOTES
 -- ============================================
 -- 1. Run this script in Supabase SQL Editor
--- 2. RLS policies are set to public for now - adjust for authentication
--- 3. UUID extension is required for automatic ID generation
--- 4. All timestamps are in UTC
--- 5. Cascade deletes: deleting a brand deletes its models
+-- 2. UUID extension is required for automatic ID generation
+-- 3. All timestamps are in UTC
+-- 4. Cascade deletes: deleting a brand deletes its models
+-- 5. PROFILES: created automatically via on_auth_user_created trigger on auth.users
+-- 6. ROLES: default role is 'tecnico'. Promote manually:
+--      UPDATE profiles SET role = 'admin' WHERE id = '<user_uuid>';
+-- 7. SUPPLIER_PRICES: authenticated users can read; only 'admin' can write
+-- 8. STORAGE bucket 'price_lists': private, admin-write / auth-read
+--    If the storage schema INSERT fails, create the bucket via the
+--    Supabase Dashboard > Storage > New Bucket (name: price_lists, private)
+--    and apply the policies above manually.
