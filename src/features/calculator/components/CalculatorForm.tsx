@@ -4,7 +4,6 @@ import { Receipt, Printer, MessageCircle, RefreshCw, Plus } from 'lucide-react';
 import { useBrands } from '@/features/inventory/hooks/useBrands';
 import { useModels } from '@/features/inventory/hooks/useModels';
 import { useServices } from '@/features/inventory/hooks/useServices';
-import { usePartTypes } from '@/features/inventory/hooks/usePartTypes';
 import { usePriceCalculator } from '../hooks/usePriceCalculator';
 import { PriceCalculator } from '@/core/services/PriceCalculator';
 import { useHistory } from '@/features/history/hooks/useHistory';
@@ -25,7 +24,6 @@ const makeEmptyRepair = (): RepairGroup => ({
   id: crypto.randomUUID(),
   modelId: '',
   serviceId: '',
-  partTypeId: '',
   partCost: '',
   currency: 'USD',
   supplier: '',
@@ -36,7 +34,6 @@ export function CalculatorForm() {
   const { brands } = useBrands();
   const { models } = useModels();
   const { services } = useServices();
-  const { partTypes } = usePartTypes();
   const { calculate } = usePriceCalculator();
   const { addHistory, isAdding: isSavingHistory } = useHistory();
   const { toast } = useToast();
@@ -244,7 +241,6 @@ export function CalculatorForm() {
                   brands={brands}
                   models={models}
                   services={services}
-                  partTypes={partTypes}
                   onUpdate={updateRepairGroup}
                   onRemove={removeRepairGroup}
                 />

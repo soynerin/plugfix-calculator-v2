@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/shared/ui/select';
 import { cn } from '@/shared/utils/cn';
-import type { Brand, RepairModel, Service, PartType } from '@/core/domain/models';
+import type { Brand, RepairModel, Service } from '@/core/domain/models';
 import type { RepairGroup } from '../types';
 
 interface RepairGroupInputProps {
@@ -23,7 +23,6 @@ interface RepairGroupInputProps {
   brands: Brand[];
   models: RepairModel[];
   services: Service[];
-  partTypes: PartType[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onUpdate: (id: string, field: keyof RepairGroup, value: any) => void;
   onRemove: (id: string) => void;
@@ -35,7 +34,6 @@ export function RepairGroupInput({
   brands,
   models,
   services,
-  partTypes,
   onUpdate,
   onRemove,
 }: RepairGroupInputProps) {
@@ -60,7 +58,7 @@ export function RepairGroupInput({
         index > 0 && 'border-l-[3px] border-l-teal-400 dark:border-l-teal-600',
       )}
     >
-      {/* Delete button — only for non-first groups */}
+      {/* Delete button */}
       {index > 0 && (
         <button
           type="button"
@@ -78,7 +76,7 @@ export function RepairGroupInput({
         </p>
       )}
 
-      {/* Model Combobox */}
+      {/* Row 1: Equipo — full width */}
       <div className="mb-3">
         <Label>Equipo *</Label>
         <div className="mt-1.5">
@@ -91,8 +89,9 @@ export function RepairGroupInput({
         </div>
       </div>
 
-      {/* Service + Part Type */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      {/* Row 2: Servicio | Costo + Proveedor */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+        {/* Left: Service search */}
         <div>
           <Label>Servicio *</Label>
           <div className="mt-1.5">
@@ -105,31 +104,76 @@ export function RepairGroupInput({
           </div>
         </div>
 
-        <div>
-          <Label>
-            Tipo de Repuesto{' '}
-            <span className="text-muted-foreground font-normal text-xs">(Opc.)</span>
-          </Label>
-          <Select
-            value={repair.partTypeId}
-            onValueChange={(v) => onUpdate(repair.id, 'partTypeId', v)}
-            disabled={partTypes.length === 0}
-          >
-            <SelectTrigger className="min-h-[44px] mt-1.5">
-              <SelectValue placeholder={partTypes.length === 0 ? 'Sin tipos' : 'Tipo'} />
-            </SelectTrigger>
-            <SelectContent>
-              {partTypes.map((pt) => (
-                <SelectItem key={pt.id} value={pt.id}>
-                  {pt.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Right: Part cost + supplier stacked */}
+        <div className="flex flex-col gap-2">
+          {/* Cost (hidden for FRP) */}
+          {!isFrp ? (
+            <div>
+              <Label>
+                Costo Repuesto{' '}
+                <span className="text-muted-foreground font-normal text-xs">(Opc.)</span>
+              </Label>
+              <div className="flex gap-2 mt-1.5">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  value={repair.partCost}
+                  onChange={(e) => onUpdate(repair.id, 'partCost', e.target.value)}
+                  placeholder="0.00"
+                  className="rounded-r-none border-r-0 min-h-[44px]"
+                />
+                <Select
+                  value={repair.currency}
+                  onValueChange={(v: 'ARS' | 'USD') => onUpdate(repair.id, 'currency', v)}
+                >
+                  <SelectTrigger className="w-24 rounded-l-none min-h-[44px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="ARS">ARS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <AnimatePresence>
+                {showUSDWarning && (
+                  <motion.p
+                    key="usd-warn"
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.18 }}
+                    className="flex items-center gap-1.5 mt-1.5 text-xs text-red-500 dark:text-red-400"
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    ¿Estás seguro de que el repuesto está en Dólares? El valor parece muy alto.
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
+          ) : (
+            /* Placeholder spacer so the supplier input stays at the same level */
+            <div />
+          )}
+
+          {/* Supplier */}
+          <div>
+            <Label>
+              Proveedor{' '}
+              <span className="text-muted-foreground font-normal text-xs">(Opc.)</span>
+            </Label>
+            <Input
+              value={repair.supplier}
+              onChange={(e) => onUpdate(repair.id, 'supplier', e.target.value)}
+              placeholder="Ej: CellCenter, MercadoLibre..."
+              className="min-h-[44px] mt-1.5"
+            />
+          </div>
         </div>
       </div>
 
-      {/* FRP Security Level */}
+      {/* FRP Security Level (full width, shown only when FRP service selected) */}
       <AnimatePresence>
         {isFrp && (
           <motion.div
@@ -138,7 +182,7 @@ export function RepairGroupInput({
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="overflow-hidden mb-3"
+            className="overflow-hidden"
           >
             <Label>Nivel de Seguridad (Parche)</Label>
             <Select
@@ -162,68 +206,6 @@ export function RepairGroupInput({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Part Cost + Currency (hidden for FRP) */}
-      {!isFrp && (
-        <div className="mb-3">
-          <Label>
-            Costo Repuesto{' '}
-            <span className="text-muted-foreground font-normal text-xs">(Opc.)</span>
-          </Label>
-          <div className="flex gap-2 mt-1.5">
-            <Input
-              type="number"
-              inputMode="decimal"
-              step="0.01"
-              value={repair.partCost}
-              onChange={(e) => onUpdate(repair.id, 'partCost', e.target.value)}
-              placeholder="0.00"
-              className="rounded-r-none border-r-0 min-h-[44px]"
-            />
-            <Select
-              value={repair.currency}
-              onValueChange={(v: 'ARS' | 'USD') => onUpdate(repair.id, 'currency', v)}
-            >
-              <SelectTrigger className="w-24 rounded-l-none min-h-[44px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="USD">USD</SelectItem>
-                <SelectItem value="ARS">ARS</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <AnimatePresence>
-            {showUSDWarning && (
-              <motion.p
-                key="usd-warn"
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.18 }}
-                className="flex items-center gap-1.5 mt-1.5 text-xs text-red-500 dark:text-red-400"
-              >
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                ¿Estás seguro de que el repuesto está en Dólares? El valor parece muy alto.
-              </motion.p>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
-
-      {/* Supplier */}
-      <div>
-        <Label>
-          Proveedor{' '}
-          <span className="text-muted-foreground font-normal text-xs">(Opc.)</span>
-        </Label>
-        <Input
-          value={repair.supplier}
-          onChange={(e) => onUpdate(repair.id, 'supplier', e.target.value)}
-          placeholder="Ej: CellCenter, MercadoLibre..."
-          className="min-h-[44px] mt-1.5"
-        />
-      </div>
     </div>
   );
 }
