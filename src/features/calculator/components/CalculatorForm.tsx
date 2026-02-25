@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Receipt, Printer, MessageCircle, RefreshCw, Plus } from 'lucide-react';
+import { Receipt, Printer, MessageCircle, RefreshCw, Plus, Trash2 } from 'lucide-react';
 import { useBrands } from '@/features/inventory/hooks/useBrands';
 import { useModels } from '@/features/inventory/hooks/useModels';
 import { useServices } from '@/features/inventory/hooks/useServices';
@@ -542,6 +542,14 @@ export const CalculatorForm = forwardRef<CalculatorFormHandle, CalculatorFormPro
                         WhatsApp
                       </Button>
                     </div>
+                    <button
+                      type="button"
+                      onClick={handleReset}
+                      className="w-full mt-1 py-2 text-sm text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-950/30 rounded-md transition-colors flex justify-center items-center gap-2"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Nueva consulta
+                    </button>
                   </motion.div>
                 </div>
               </motion.div>
