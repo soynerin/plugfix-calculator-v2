@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import { PriceCalculator } from '@/core/services/PriceCalculator';
 import { ModelCombobox } from './ModelCombobox';
+import { SearchCombobox } from './SearchCombobox';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import {
@@ -40,6 +42,16 @@ export function RepairGroupInput({
   const selectedService = services.find((s) => s.id === repair.serviceId);
   const isFrp = selectedService ? PriceCalculator.isFrpService(selectedService.name) : false;
   const showUSDWarning = repair.currency === 'USD' && parseFloat(repair.partCost) > 1500;
+
+  const serviceOptions = useMemo(
+    () =>
+      services.map((s) => ({
+        id: s.id,
+        label: s.name,
+        badge: `${s.hours}h`,
+      })),
+    [services],
+  );
 
   return (
     <div
@@ -83,21 +95,14 @@ export function RepairGroupInput({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
         <div>
           <Label>Servicio *</Label>
-          <Select
-            value={repair.serviceId}
-            onValueChange={(v) => onUpdate(repair.id, 'serviceId', v)}
-          >
-            <SelectTrigger className="min-h-[44px] mt-1.5">
-              <SelectValue placeholder="Selecciona servicio" />
-            </SelectTrigger>
-            <SelectContent>
-              {services.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.name} ({s.hours}h)
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="mt-1.5">
+            <SearchCombobox
+              options={serviceOptions}
+              value={repair.serviceId}
+              onChange={(v) => onUpdate(repair.id, 'serviceId', v)}
+              placeholder="Ej: Cambio de módulo, FRP..."
+            />
+          </div>
         </div>
 
         <div>
