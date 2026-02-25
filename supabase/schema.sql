@@ -207,25 +207,48 @@ CREATE TRIGGER update_supplier_prices_last_updated
   FOR EACH ROW
   EXECUTE FUNCTION update_last_updated_column();
 
--- Function to auto-create a profile row when a user signs up
+-- Function to auto-create a profile row when a user signs up.
+-- IMPORTANT: wrapped in EXCEPTION block so that any profile creation failure
+-- (constraint mismatch, missing table, etc.) only emits a WARNING and never
+-- aborts the auth signup transaction (which would return 500 to the client).
+-- The client-side ensureProfileOrPurge() in AuthContext self-heals missing rows.
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, email, full_name, avatar_url, role)
+  INSERT INTO public.profiles (id, email, full_name, avatar_url, username, role)
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data ->> 'full_name', ''),
-    COALESCE(NEW.raw_user_meta_data ->> 'avatar_url', ''),
+    COALESCE(NEW.raw_user_meta_data ->> 'full_name',
+             NEW.raw_user_meta_data ->> 'name',
+             NEW.raw_user_meta_data ->> 'display_name',
+             split_part(NEW.email, '@', 1),
+             ''),
+    COALESCE(NEW.raw_user_meta_data ->> 'avatar_url',
+             NEW.raw_user_meta_data ->> 'picture',
+             NULL),
+    COALESCE(NEW.raw_user_meta_data ->> 'username',
+             NEW.raw_user_meta_data ->> 'preferred_username',
+             split_part(NEW.email, '@', 1)),
     'tecnico'
   )
   ON CONFLICT (id) DO NOTHING;
+
   RETURN NEW;
+
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE WARNING
+      '[handle_new_user] Could not create profile for user %. Error: % — %',
+      NEW.id, SQLSTATE, SQLERRM;
+    RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+   SET search_path = public;
 
 -- Trigger: automatically create a profile row upon auth.users INSERT
-CREATE OR REPLACE TRIGGER on_auth_user_created
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION handle_new_user();

@@ -23,6 +23,7 @@ import { ModelManager } from '@/features/inventory/components/ModelManager';
 import { ServiceManager } from '@/features/inventory/components/ServiceManager';
 import { PartTypeManager } from '@/features/inventory/components/PartTypeManager';
 import { ConfigManager } from '@/features/inventory/components/ConfigManager';
+import { AdminPriceManager } from '@/features/inventory/components/AdminPriceManager';
 import { HistoryViewer } from '@/features/history/components/HistoryViewer';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import { MobileNavBar } from '@/shared/components/MobileNavBar';
@@ -119,7 +120,7 @@ function MainLayout() {
           <TabsList
             className={`hidden md:grid w-full lg:w-auto ${
               isAdmin
-                ? 'grid-cols-3 lg:grid-cols-7'
+                ? 'grid-cols-4 lg:grid-cols-8'
                 : 'grid-cols-2 lg:grid-cols-5'
             }`}
           >
@@ -130,6 +131,7 @@ function MainLayout() {
             <TabsTrigger value="services">🔧 Servicios</TabsTrigger>
             <TabsTrigger value="parts">📦 Repuestos</TabsTrigger>
             <TabsTrigger value="config">⚙️ Config</TabsTrigger>
+            {isAdmin && <TabsTrigger value="prices">💲 Precios</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="calculator" className="space-y-4">
@@ -228,6 +230,22 @@ function MainLayout() {
                 <ConfigManager />
               </div>
             </motion.div>
+          </TabsContent>
+
+          <TabsContent value="prices" className="space-y-4">
+            <AdminRoute>
+              <motion.div
+                key="prices"
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                transition={pageTransition}
+              >
+                <div className="grid gap-6">
+                  <AdminPriceManager />
+                </div>
+              </motion.div>
+            </AdminRoute>
           </TabsContent>
         </Tabs>
       </main>
