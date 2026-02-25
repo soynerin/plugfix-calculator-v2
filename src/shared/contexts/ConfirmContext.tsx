@@ -5,6 +5,7 @@ export interface ConfirmOptions {
   title: string;
   message: string;
   type?: 'danger' | 'info';
+  confirmText?: string;
   onConfirm: () => void | Promise<void>;
 }
 
@@ -58,6 +59,7 @@ export function ConfirmProvider({ children }: ConfirmProviderProps) {
           title={confirmOptions.title}
           description={confirmOptions.message}
           type={confirmOptions.type || 'danger'}
+          confirmText={confirmOptions.confirmText}
         />
       )}
     </ConfirmContext.Provider>

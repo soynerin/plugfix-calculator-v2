@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -17,7 +17,7 @@ import { ProfilePage } from '@/features/profile';
 import { UserMenu } from '@/shared/components/UserMenu';
 import { db } from '@/core/services';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
-import { CalculatorForm } from '@/features/calculator/components/CalculatorForm';
+import { CalculatorForm, type CalculatorFormHandle } from '@/features/calculator/components/CalculatorForm';
 import { BrandManager } from '@/features/inventory/components/BrandManager';
 import { ModelManager } from '@/features/inventory/components/ModelManager';
 import { ServiceManager } from '@/features/inventory/components/ServiceManager';
@@ -29,6 +29,7 @@ import { MobileNavBar } from '@/shared/components/MobileNavBar';
 import { Toaster } from '@/shared/ui/toaster';
 import { pageVariants, pageTransition } from '@/shared/utils/animations';
 import { ConfirmProvider } from '@/shared/contexts/ConfirmContext';
+import { useConfirm } from '@/shared/hooks/useConfirm';
 
 // Crear instancia de QueryClient
 const queryClient = new QueryClient({
@@ -44,7 +45,10 @@ const queryClient = new QueryClient({
 
 function MainLayout() {
   const [activeTab, setActiveTab] = useState('calculator');
+  const [isCalculatorDirty, setIsCalculatorDirty] = useState(false);
+  const calculatorRef = useRef<CalculatorFormHandle>(null);
   const { user, role } = useAuth();
+  const { confirm } = useConfirm();
 
   useEffect(() => {
     db.initialize().catch((err) => {
@@ -52,6 +56,23 @@ function MainLayout() {
     });
   }, []);
   const isAdmin = role === 'admin';
+
+  const handleTabChange = (newTab: string) => {
+    if (activeTab === 'calculator' && isCalculatorDirty) {
+      confirm({
+        title: '¿Salir de la Calculadora?',
+        message: 'Los datos ingresados se perderán si cambias de pestaña.',
+        type: 'info',
+        confirmText: 'Sí, salir',
+        onConfirm: () => {
+          calculatorRef.current?.reset();
+          setActiveTab(newTab);
+        },
+      });
+    } else {
+      setActiveTab(newTab);
+    }
+  };
 
   const displayName =
     (user?.user_metadata?.username as string | undefined) ||
@@ -94,7 +115,7 @@ function MainLayout() {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList
             className={`hidden md:grid w-full lg:w-auto ${
               isAdmin
@@ -119,7 +140,7 @@ function MainLayout() {
               animate="animate"
               transition={pageTransition}
             >
-              <CalculatorForm />
+              <CalculatorForm ref={calculatorRef} onDirtyChange={setIsCalculatorDirty} />
             </motion.div>
           </TabsContent>
 
@@ -239,7 +260,7 @@ function MainLayout() {
       </footer>
 
       {/* Mobile Navigation Bar */}
-      <MobileNavBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <MobileNavBar activeTab={activeTab} onTabChange={handleTabChange} />
     </div>
   );
 }

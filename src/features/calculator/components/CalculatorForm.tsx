@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Receipt, Printer, MessageCircle, RefreshCw, Plus } from 'lucide-react';
 import { useBrands } from '@/features/inventory/hooks/useBrands';
@@ -20,6 +20,14 @@ import { RepairGroupInput } from './RepairGroupInput';
 import type { RepairHistory, RepairDetail } from '@/core/domain/models';
 import type { RepairGroup } from '../types';
 
+export interface CalculatorFormHandle {
+  reset: () => void;
+}
+
+interface CalculatorFormProps {
+  onDirtyChange?: (dirty: boolean) => void;
+}
+
 const makeEmptyRepair = (): RepairGroup => ({
   id: crypto.randomUUID(),
   modelId: '',
@@ -30,7 +38,8 @@ const makeEmptyRepair = (): RepairGroup => ({
   frpSecurityMultiplier: 1,
 });
 
-export function CalculatorForm() {
+export const CalculatorForm = forwardRef<CalculatorFormHandle, CalculatorFormProps>(
+  function CalculatorForm({ onDirtyChange }, ref) {
   const { brands } = useBrands();
   const { models } = useModels();
   const { services } = useServices();
@@ -112,6 +121,20 @@ export function CalculatorForm() {
     setClientName('');
     setDiagnosis('');
   };
+
+  // ── Dirty state detection ─────────────────────────────────
+  const isDirty = useMemo(() => {
+    if (clientName.trim() !== '' || diagnosis.trim() !== '') return true;
+    return repairs.some(
+      (r) => r.modelId !== '' || r.serviceId !== '' || r.partCost !== '' || r.supplier.trim() !== '',
+    );
+  }, [clientName, diagnosis, repairs]);
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useImperativeHandle(ref, () => ({ reset: handleReset }));
 
   const handleSaveToHistory = () => {
     if (repairsWithResult.length === 0) return;
@@ -535,4 +558,6 @@ export function CalculatorForm() {
       </AnimatePresence>
     </>
   );
-}
+  }
+);
+CalculatorForm.displayName = 'CalculatorForm';

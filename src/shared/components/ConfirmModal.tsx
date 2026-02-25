@@ -8,6 +8,7 @@ interface ConfirmModalProps {
   title: string;
   description: string;
   type?: 'danger' | 'info';
+  confirmText?: string;
 }
 
 export function ConfirmModal({
@@ -17,6 +18,7 @@ export function ConfirmModal({
   title,
   description,
   type = 'danger',
+  confirmText,
 }: ConfirmModalProps) {
   // Bloquear scroll cuando el modal está abierto
   useEffect(() => {
@@ -186,7 +188,7 @@ export function ConfirmModal({
                 dark:focus:ring-offset-gray-900
               `}
             >
-              {currentConfig.buttonText}
+              {confirmText ?? currentConfig.buttonText}
             </button>
           </div>
         </div>
