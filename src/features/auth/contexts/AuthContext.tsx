@@ -141,7 +141,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // getSession() is intentionally NOT called at startup: in Supabase v2 it
     // awaits the token-refresh network call when the access token is expired,
     // which is exactly what caused the infinite "Verificando sesión..." hang.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         const userId = session.user.id;
         setSession(session);
