@@ -52,7 +52,11 @@ export function UserMenu() {
           null,
         );
       });
-  }, [user?.id, user?.email, user?.user_metadata]);
+  // Depend only on user.id — the profile data is keyed by ID and doesn't
+  // change on token refreshes, which create a new user object reference and
+  // would otherwise re-trigger this effect on every window-focus renewal.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // ─── Close on outside click ────────────────────────────────────────────────
 

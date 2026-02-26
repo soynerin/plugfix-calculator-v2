@@ -27,13 +27,12 @@ export interface UseFileUploadReturn {
 const BUCKET = 'price_lists';
 
 const ACCEPTED_MIME_TYPES = new Set([
-  'application/pdf',
   'application/vnd.ms-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'text/csv',
 ]);
 
-const ACCEPTED_EXTENSIONS = ['.pdf', '.xls', '.xlsx', '.csv'];
+const ACCEPTED_EXTENSIONS = ['.xls', '.xlsx', '.csv'];
 
 const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
 
@@ -45,7 +44,7 @@ function validateFile(file: File): string | null {
   const isExtAccepted = ACCEPTED_EXTENSIONS.includes(extension);
 
   if (!isMimeAccepted && !isExtAccepted) {
-    return `Formato no soportado. Solo se aceptan: ${ACCEPTED_EXTENSIONS.join(', ')}`;
+    return `Formato no soportado. Por motivos de precisión, el sistema solo procesa listas en formato Excel (.xls, .xlsx) o CSV.`;
   }
   if (file.size > MAX_SIZE_BYTES) {
     return `El archivo excede el límite de 50 MB (${(file.size / 1024 / 1024).toFixed(1)} MB).`;

@@ -13,6 +13,7 @@ import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils';
 import { useToast } from '@/shared/hooks/use-toast';
 import { useConfirm } from '@/shared/hooks/useConfirm';
+import { getSupabaseClient } from '@/lib/supabase';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -23,13 +24,12 @@ function formatBytes(bytes: number): string {
 }
 
 const ACCEPTED_MIME_MAP: Record<string, string> = {
-  'application/pdf': '.pdf',
   'application/vnd.ms-excel': '.xls',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
   'text/csv': '.csv',
 };
 
-const ACCEPTED_ACCEPT_STRING = Object.keys(ACCEPTED_MIME_MAP).join(',') + ',.xls,.xlsx,.csv,.pdf';
+const ACCEPTED_ACCEPT_STRING = Object.keys(ACCEPTED_MIME_MAP).join(',') + ',.xls,.xlsx,.csv';
 
 // ─── DropZone ─────────────────────────────────────────────────────────────────
 
@@ -142,7 +142,7 @@ function DropZone({ onFileDrop, disabled }: DropZoneProps) {
 
       {/* Supported formats badge */}
       <div className="flex flex-wrap items-center justify-center gap-1.5 mt-1">
-        {['.pdf', '.xls', '.xlsx', '.csv'].map((ext) => (
+        {['.xls', '.xlsx', '.csv'].map((ext) => (
           <span
             key={ext}
             className="inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-[11px] font-mono font-medium text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
@@ -215,9 +215,6 @@ function CopyButton({ text }: { text: string }) {
 
 function FileIcon({ name, className }: { name: string; className?: string }) {
   const ext = name.split('.').pop()?.toLowerCase() ?? '';
-  if (ext === 'pdf') {
-    return <FileText className={cn('text-red-500 dark:text-red-400', className)} />;
-  }
   if (ext === 'csv') {
     return <FileSpreadsheet className={cn('text-emerald-600 dark:text-emerald-400', className)} />;
   }
@@ -236,11 +233,12 @@ function displayName(storagePath: string): string {
 interface FileCardProps {
   file: FileObject;
   isDeleting: boolean;
+  isProcessing: boolean;
   onDelete: (path: string) => void;
   onProcess: (file: FileObject) => void;
 }
 
-function FileCard({ file, isDeleting, onDelete, onProcess }: FileCardProps) {
+function FileCard({ file, isDeleting, isProcessing, onDelete, onProcess }: FileCardProps) {
   const sizeBytes: number = (file.metadata as Record<string, number> | null)?.size ?? 0;
   const createdAt = file.created_at ? new Date(file.created_at) : null;
 
@@ -288,10 +286,20 @@ function FileCard({ file, isDeleting, onDelete, onProcess }: FileCardProps) {
           variant="outline"
           size="sm"
           onClick={() => onProcess(file)}
+          disabled={isProcessing}
           className="flex-1 gap-1.5 text-primary-600 dark:text-primary-400 border-primary-200 dark:border-primary-800 hover:bg-primary-50 dark:hover:bg-primary-900/20"
         >
-          <Cpu className="w-3.5 h-3.5" />
-          Procesar
+          {isProcessing ? (
+            <>
+              <Spinner size="sm" />
+              Procesando...
+            </>
+          ) : (
+            <>
+              <Cpu className="w-3.5 h-3.5" />
+              Procesar
+            </>
+          )}
         </Button>
         <Button
           variant="outline"
@@ -316,13 +324,14 @@ interface StoredFilesListProps {
   files: FileObject[];
   isLoading: boolean;
   deletingPath: string | null;
+  processingFile: string | null;
   onDelete: (path: string) => void;
   onProcess: (file: FileObject) => void;
   onRefresh: () => void;
 }
 
 function StoredFilesList({
-  files, isLoading, deletingPath, onDelete, onProcess, onRefresh,
+  files, isLoading, deletingPath, processingFile, onDelete, onProcess, onRefresh,
 }: StoredFilesListProps) {
   return (
     <div className="space-y-4">
@@ -387,6 +396,7 @@ function StoredFilesList({
               key={file.id ?? file.name}
               file={file}
               isDeleting={deletingPath === file.name}
+              isProcessing={processingFile === file.name}
               onDelete={onDelete}
               onProcess={onProcess}
             />
@@ -404,7 +414,7 @@ function StoredFilesList({
  *
  * Responsibilities:
  * 1. Role guard: renders an "Acceso Denegado" state for non-admins.
- * 2. Drag-and-drop file upload zone (PDF / XLS / XLSX / CSV, max 50 MB).
+ * 2. Drag-and-drop file upload zone (XLS / XLSX / CSV, max 50 MB).
  * 3. Uploads the file to the Supabase Storage `price_lists` bucket.
  * 4. Shows a responsive grid of stored files with Delete and Process actions.
  */
@@ -414,6 +424,7 @@ export function AdminPriceManager() {
   const { files, isLoading: isLoadingFiles, deletingPath, refetch, deleteFile } = useStorageFiles();
   const { toast } = useToast();
   const { confirm } = useConfirm();
+  const [processingFile, setProcessingFile] = useState<string | null>(null);
 
   // No useEffects needed — useQuery handles initial fetch and cache invalidation
   // triggers refetch automatically after upload/delete mutations.
@@ -452,6 +463,15 @@ export function AdminPriceManager() {
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleFileDrop = (file: File) => {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (file.type === 'application/pdf' || ext === 'pdf') {
+      toast({
+        title: 'Formato no permitido',
+        description: 'Por motivos de precisión, el sistema ahora solo procesa listas en formato Excel.',
+        variant: 'destructive',
+      });
+      return;
+    }
     if (status !== 'idle') reset();
     upload(file);
   };
@@ -477,13 +497,46 @@ export function AdminPriceManager() {
     });
   };
 
-  const handleProcess = (file: FileObject) => {
-    // Placeholder — will be wired to Claude AI in the next stage
-    console.log('Preparando para procesar:', file.name);
-    toast({
-      title: 'Próximamente',
-      description: `El procesamiento con IA de "${displayName(file.name)}" estará disponible en la siguiente etapa.`,
-    });
+  const handleProcess = async (file: FileObject) => {
+    setProcessingFile(file.name);
+    try {
+      // Generate a signed URL valid for 10 minutes (bucket may be private)
+      const supabase = getSupabaseClient();
+      const { data, error: urlError } = await supabase.storage
+        .from('price_lists')
+        .createSignedUrl(file.name, 600);
+
+      if (urlError || !data?.signedUrl) {
+        throw new Error(urlError?.message ?? 'No se pudo generar la URL del archivo.');
+      }
+
+      const response = await fetch('/.netlify/functions/process-pricelist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileUrl: data.signedUrl, fileName: file.name }),
+      });
+
+      let result: { success?: boolean; count?: number; provider?: string; error?: string } = {};
+      try { result = await response.json(); } catch { /* ignore */ }
+
+      if (!response.ok) {
+        throw new Error(result.error ?? `Error ${response.status}`);
+      }
+
+      toast({
+        title: 'Lista procesada correctamente',
+        description: `Se procesaron ${result.count ?? 0} repuestos para ${result.provider ?? 'el proveedor'}.`,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error desconocido.';
+      toast({
+        title: 'Error al procesar',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setProcessingFile(null);
+    }
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -495,8 +548,7 @@ export function AdminPriceManager() {
           Listas de Precios de Proveedores
         </CardTitle>
         <CardDescription>
-          Subí un archivo con los precios de repuestos. Los formatos soportados son PDF,
-          Excel (.xls / .xlsx) y CSV. Tamaño máximo: 50 MB.
+          Subí un archivo con los precios de repuestos. Formatos soportados: Excel (.xls / .xlsx) y CSV. Tamaño máximo: 50 MB.
         </CardDescription>
       </CardHeader>
 
@@ -619,6 +671,7 @@ export function AdminPriceManager() {
           files={files}
           isLoading={isLoadingFiles}
           deletingPath={deletingPath}
+          processingFile={processingFile}
           onDelete={handleDelete}
           onProcess={handleProcess}
           onRefresh={refetch}

@@ -20,8 +20,10 @@ interface AdminRouteProps {
 export function AdminRoute({ children, redirectTo = '/' }: AdminRouteProps) {
   const { role, loading, roleLoading } = useAuth();
 
-  // Still fetching auth/role state — render nothing to avoid flash
-  if (loading || roleLoading) return null;
+  // Block rendering only on initial load when the role hasn't been resolved
+  // yet. If we already have a role value, render immediately — returning null
+  // here would unmount children and lose their local state.
+  if (role === null && (loading || roleLoading)) return null;
 
   // Not an admin → redirect
   if (role !== 'admin') {

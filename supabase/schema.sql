@@ -132,17 +132,38 @@ CREATE INDEX idx_history_service ON history(service);
 CREATE INDEX idx_history_brand_model ON history(brand, model);
 
 -- ============================================
+-- PART TYPES TABLE
+-- ============================================
+-- Per-user repair part categories (e.g. Pantalla, Batería).
+-- UNIQUE(user_id, name) is required for upsert onConflict: 'user_id,name'.
+CREATE TABLE part_types (
+  id         UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID         NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name       VARCHAR(120) NOT NULL,
+  created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  CONSTRAINT part_types_user_name_key UNIQUE (user_id, name)
+);
+
+CREATE INDEX idx_part_types_user_id ON part_types(user_id);
+
+-- ============================================
 -- SUPPLIER_PRICES TABLE
 -- ============================================
 -- Phase 2: Tracks part prices from external suppliers.
 -- Only admins can write; any authenticated user can read.
 CREATE TABLE supplier_prices (
-  id           UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
-  provider     VARCHAR(255) NOT NULL,
-  part_name    VARCHAR(255) NOT NULL,
-  price        NUMERIC      NOT NULL CHECK (price >= 0),
-  currency     VARCHAR(3)   NOT NULL DEFAULT 'ARS' CHECK (currency IN ('ARS', 'USD')),
-  last_updated TIMESTAMPTZ  DEFAULT NOW()
+  id             UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  provider       VARCHAR(255) NOT NULL,
+  part_name      VARCHAR(255) NOT NULL,
+  brand          VARCHAR(255) NULL,                         -- device brand (from supplier Excel)
+  model          VARCHAR(255) NULL,                         -- device model (from supplier Excel)
+  quality        VARCHAR(100) NULL,                         -- part quality tier (from supplier Excel)
+  price          NUMERIC      NULL    CHECK (price IS NULL OR price >= 0),  -- base cash price in ARS (Efectivo)
+  price_usd      NUMERIC      NULL,                         -- cost in USD (from supplier Excel)
+  price_transfer NUMERIC      NULL,                         -- surcharge for bank-transfer payment in ARS
+  currency       VARCHAR(3)   NOT NULL DEFAULT 'ARS' CHECK (currency IN ('ARS', 'USD')),
+  last_updated   TIMESTAMPTZ  DEFAULT NOW()
 );
 
 CREATE INDEX idx_supplier_prices_provider     ON supplier_prices(provider);
@@ -154,13 +175,25 @@ CREATE INDEX idx_supplier_prices_last_updated ON supplier_prices(last_updated DE
 -- ============================================
 
 -- Function to update updated_at timestamp
+-- SET search_path fixes the "mutable search_path" Supabase security warning
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = public;
+
+-- Alias: set_updated_at (same behaviour, alternate name used in some triggers)
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+   SET search_path = public;
 
 -- Apply trigger to brands
 CREATE TRIGGER update_brands_updated_at
@@ -186,6 +219,12 @@ CREATE TRIGGER update_config_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+-- Apply trigger to part_types
+CREATE TRIGGER update_part_types_updated_at
+  BEFORE UPDATE ON part_types
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
 -- Apply trigger to profiles
 CREATE TRIGGER update_profiles_updated_at
   BEFORE UPDATE ON profiles
@@ -199,7 +238,8 @@ BEGIN
   NEW.last_updated = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+   SET search_path = public;
 
 -- Apply last_updated trigger to supplier_prices
 CREATE TRIGGER update_supplier_prices_last_updated
@@ -253,6 +293,26 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW
   EXECUTE FUNCTION handle_new_user();
 
+-- Function to auto-initialize config row with default values when a user signs up.
+-- SET search_path fixes the "mutable search_path" Supabase security warning.
+CREATE OR REPLACE FUNCTION initialize_user_config()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.config (user_id, hourly_rate, margin, usd_rate)
+  VALUES (NEW.id, 13000, 40, 1200)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+   SET search_path = public;
+
+-- Trigger: automatically create a config row upon auth.users INSERT
+DROP TRIGGER IF EXISTS on_auth_user_config_init ON auth.users;
+CREATE TRIGGER on_auth_user_config_init
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION initialize_user_config();
+
 -- ============================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- ============================================
@@ -264,6 +324,7 @@ ALTER TABLE models           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE services         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE config           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE history          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE part_types       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE supplier_prices  ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Allow public read access (for now, adjust for auth later)
@@ -357,6 +418,25 @@ CREATE POLICY "Users can update own profile"
   USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
 
+-- Part Types
+-- Users can only access their own rows (enforced by RLS + user_id column).
+CREATE POLICY "Users can view own part types"
+  ON part_types FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own part types"
+  ON part_types FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own part types"
+  ON part_types FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own part types"
+  ON part_types FOR DELETE
+  USING (auth.uid() = user_id);
+
 -- Supplier Prices
 -- Any authenticated user can read. Only admins can write.
 CREATE POLICY "Allow authenticated read on supplier_prices"
@@ -437,6 +517,51 @@ INSERT INTO services (name, hours, base_price, description) VALUES
 -- ============================================
 -- HELPER FUNCTIONS
 -- ============================================
+
+-- Function to get a single profile by user_id
+-- SET search_path fixes the "mutable search_path" Supabase security warning
+CREATE OR REPLACE FUNCTION get_profile(user_id UUID)
+RETURNS TABLE (
+  id         UUID,
+  username   TEXT,
+  full_name  TEXT,
+  avatar_url TEXT,
+  updated_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT p.id, p.username, p.full_name, p.avatar_url, p.updated_at, p.created_at
+  FROM profiles p
+  WHERE p.id = user_id;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = public;
+
+-- Function to search profiles by username or full_name
+-- SET search_path fixes the "mutable search_path" Supabase security warning
+CREATE OR REPLACE FUNCTION search_profiles(search_query TEXT)
+RETURNS TABLE (
+  id         UUID,
+  username   TEXT,
+  full_name  TEXT,
+  avatar_url TEXT,
+  updated_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT p.id, p.username, p.full_name, p.avatar_url, p.updated_at, p.created_at
+  FROM profiles p
+  WHERE
+    LOWER(p.username) LIKE LOWER('%' || search_query || '%') OR
+    LOWER(p.full_name) LIKE LOWER('%' || search_query || '%')
+  ORDER BY p.username;
+END;
+$$ LANGUAGE plpgsql
+   SECURITY DEFINER
+   SET search_path = public;
 
 -- Function to search brands
 CREATE OR REPLACE FUNCTION search_brands(search_query TEXT)

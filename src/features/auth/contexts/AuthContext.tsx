@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { getSupabaseClient } from '@/lib/supabase';
 
@@ -39,6 +39,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<UserRole | null>(null);
   const [roleLoading, setRoleLoading] = useState(false);
+  // Track which user ID has already had its role fetched so token-refresh
+  // events (which can fire as SIGNED_IN in some Supabase versions) don't
+  // trigger redundant DB calls and the roleLoading flash that follows.
+  const fetchedRoleForRef = useRef<string | null>(null);
 
   /** Fetch the role from profiles for the given user id. */
   const fetchRole = useCallback(async (userId: string) => {
@@ -139,17 +143,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // which is exactly what caused the infinite "Verificando sesión..." hang.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
+        const userId = session.user.id;
         setSession(session);
         setUser(session.user);
-        // Fetch role in the background — does not block the loading flag.
-        fetchRole(session.user.id);
-        // Heal missing profile rows / purge invalid JWTs (fire-and-forget).
-        // Only run on explicit sign-in to avoid redundant upserts on every
-        // token refresh or page reload.
-        if (event === 'SIGNED_IN') {
+        // Only fetch the role and upsert profile when the user identity is
+        // genuinely new. Token refreshes (TOKEN_REFRESHED, or SIGNED_IN in
+        // older Supabase versions) deliver the same userId - guard with a ref
+        // so we never set roleLoading=true again after the initial load.
+        if (userId !== fetchedRoleForRef.current) {
+          fetchedRoleForRef.current = userId;
+          fetchRole(userId);
+          // Heal missing profile rows / purge invalid JWTs only on first login.
           ensureProfileOrPurge(session.user);
         }
       } else {
+        fetchedRoleForRef.current = null;
         setSession(null);
         setUser(null);
         setRole(null);
